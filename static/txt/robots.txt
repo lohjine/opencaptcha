@@ -1,0 +1,5 @@
+user-agent: *
+Disallow: /*.js
+Disallow: /verify
+Disallow: /solve
+Disallow: /request
