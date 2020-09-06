@@ -150,12 +150,15 @@ def solvechallenge():
 def verify():
 
     token = request.form.get('response', None)
-    site_secret = request.form.get('site_secret', '').strip()
+    site_secret = request.form.get('site_secret', None)
     ip = request.form.get('ip', None)
 
     if token is None:
         return jsonify({'success': False, 'error': 'Response token missing'})
 
+    if site_secret is None:
+        return jsonify({'success': False, 'error': 'Site_secret missing'})
+    
     token_details = db_connection.get(token.strip())
 
     if token_details is None:
@@ -171,7 +174,7 @@ def verify():
 #        if ip != token_details['ip']:
 #            return jsonify({'success':False,'error':'IP does not match'}) # TODO disable this first?
 
-    if site_secret == token_details['site_secret']:
+    if site_secret.strip() == token_details['site_secret']:
         #        token_details['used'] = True
         db_connection.delete(token)
         return jsonify({'success': True, 'error': None})
