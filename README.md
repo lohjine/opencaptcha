@@ -84,7 +84,7 @@ pip3 install -r requirements.txt
 # Start server.py
 python3 server.py &
 
-# Serve app in flask_app.py using your web application stack
+# Serve app in flask_core.py using your web application stack
 # For a wsgi/nginx example, refer to https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uswgi-and-nginx-on-ubuntu-18-04
 
 # Proceed with step 2 of Installation section above
