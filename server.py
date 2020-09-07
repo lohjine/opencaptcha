@@ -23,6 +23,10 @@ from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, va
 # - faster?
 
 
+# do challenge
+# then ip rate limiting
+# then ip blacklist
+
 def fetch_tor_ips():
 
     tor_endpoint = 'https://check.torproject.org/torbulkexitlist'
@@ -35,7 +39,7 @@ def fetch_tor_ips():
 
 def fetch_vpn_ips():
 
-    vpn_ip_endpoint = 'https://github.com/ejrv/VPNs/blob/master/vpn-ipv4.txt'
+    vpn_ip_endpoint = 'https://github.com/ejrv/VPNs/blob/master/vpn-ipv4.txt' # for commercial, not very updated
 
     pass
 
@@ -43,6 +47,9 @@ def fetch_vpn_ips():
 def fetch_ip_blacklists():
 
     stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.zip'
+
+    # https://www.stopforumspam.com/downloads/listed_ip_7.gz
+    # check whether already have an updated one, in case we restart process multiple times
 
     pass
 
