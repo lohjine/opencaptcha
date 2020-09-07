@@ -2,7 +2,14 @@ challengeDiv.textContent = '';
 challengeDiv.style.lineHeight = "normal"
 challengeDiv.style.marginTop = "3%"
 
-var content = document.createTextNode("Type '{{WORD}}' into the box:");
+var content = document.createTextNode("Type the word into the box:");
+
+var content_pre = document.createElement('span');
+content_pre.textContent = 'Type'
+var content_image = document.createElement('img');
+content_image.src = "data:image/png;base64,{{IMG}}"
+var content_post = document.createElement('span');
+content_post.textContent = 'into the box'
 
 var content_input = document.createElement('input');
 content_input.style.width = "60%"
@@ -15,8 +22,9 @@ btn.type = "button"
 btn.setAttribute("onClick","javascript: submit_challenge();")
 btn.style.marginLeft = "15px"
 		
-challengeDiv.appendChild(content);
+challengeDiv.appendChild(content_pre);
 challengeDiv.appendChild(content_input);
+challengeDiv.appendChild(content_post);
 challengeDiv.appendChild(btn);		
 
 window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980

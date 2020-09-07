@@ -8,6 +8,9 @@ import configparser
 import logging
 from challenges.wordlist import wordlist
 import os
+from PIL import Image, ImageDraw, ImageFont
+import base64
+from io import BytesIO
 
 app = Blueprint('app', __name__)
 
@@ -88,7 +91,16 @@ def requestchallenge():
             challenge = challenge5.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
             answer = random.choice(wordlist)
-            challenge = challenge.replace('{{WORD}}', answer)
+
+            image = Image.new('RGB', (80, 30), color = 'white')
+            d = ImageDraw.Draw(image)
+            font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
+            d.text((5,5), answer, font=font, fill=(0,0,0))
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+            challenge = challenge.replace('{{IMG}}', img_str)
 
         elif challenge_level == 6:
             pass
