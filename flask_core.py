@@ -75,7 +75,8 @@ def requestchallenge():
             answer = 'a'
             challenge = challenge1.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
-        elif challenge_level == 2:
+        elif challenge_level == 2: # TODO: change this up, but we need something creative that is no-input, but can break bots
+            # how about every x secs, do a swap or append, then submit at the end. can randomize?
             answer = 'a'
             challenge = challenge1.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
