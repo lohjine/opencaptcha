@@ -158,7 +158,7 @@ def verify():
 
     if site_secret is None:
         return jsonify({'success': False, 'error': 'Site_secret missing'})
-    
+
     token_details = db_connection.get(token.strip())
 
     if token_details is None:
@@ -168,7 +168,7 @@ def verify():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
 #    if token_details['used'] == True:
-#        return jsonify({'success': False, 'error': 'Response token has already been used'})
+#        return jsonify({'success': False, 'error': 'Response token has already been used'})s
 
 #    if ip is not None:
 #        if ip != token_details['ip']:
