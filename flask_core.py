@@ -33,6 +33,8 @@ with open(os.path.join(dirname, 'challenges/simplebuttonchallenge.js'), 'r') as 
     challenge3 = f.read()
 with open(os.path.join(dirname, 'challenges/copywordchallenge.js'), 'r') as f:
     challenge5 = f.read()
+with open(os.path.join(dirname, 'challenges/copywordchallenge_image.js'), 'r') as f:
+    challenge6 = f.read()
 
 
 @app.route('/<path:text>')
@@ -68,6 +70,8 @@ def requestchallenge():
             string.ascii_lowercase +
             string.ascii_uppercase +
             string.digits) for _ in range(challenge_id_length))
+    
+    challenge_level = 6
 
     try:
         # gen a challenge according to input parameters
@@ -88,12 +92,18 @@ def requestchallenge():
             answer = 'a'
             challenge = challenge3.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
-        elif challenge_level >= 5:
+        elif challenge_level == 5:
             challenge = challenge5.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
             answer = random.choice(wordlist)
+            challenge = challenge.replace('{{WORD}}', answer)
 
-            image = Image.new('RGB', (80, 30), color = 'white')
+        elif challenge_level >= 6: # not blind-friendly
+            challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
+
+            answer = random.choice(wordlist)
+
+            image = Image.new('RGB', (80, 25), color = 'white')
             d = ImageDraw.Draw(image)
             font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
             d.text((5,5), answer, font=font, fill=(0,0,0))
@@ -102,9 +112,7 @@ def requestchallenge():
             img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
             challenge = challenge.replace('{{IMG}}', img_str)
-
-        elif challenge_level == 6:
-            pass
+            
         elif challenge_level == 7:
             pass
         elif challenge_level == 8:
@@ -141,6 +149,7 @@ def solvechallenge():
         return jsonify({'success': False, 'error': 'Invalid challenge_id'})
 
     if answer != challenge_details['answer']:
+        # TODO, delete challenge_id
         return jsonify({'success': False, 'error': 'Wrong answer'})
 
     # answer is correct, generate token and record in database
@@ -198,6 +207,13 @@ def verify():
 @app.route('/robots.txt')
 def robots():
     return send_from_directory(os.path.join(dirname, 'static/txt'), 'robots.txt')
+
+@app.route('/test', methods=['GET', 'POST'])
+def main():
+    if request.method == 'POST':
+        print(request.form)
+
+    return send_from_directory(os.path.join(dirname,'static/js'), 'test.html')
 
 
 if __name__ == '__main__':

@@ -2,7 +2,12 @@ challengeDiv.textContent = '';
 challengeDiv.style.lineHeight = "normal"
 challengeDiv.style.marginTop = "3%"
 
-var content = document.createTextNode("Type '{{WORD}}' into the box:");
+var content_pre = document.createElement('span');
+content_pre.textContent = 'Type the word '
+var content_image = document.createElement('img');
+content_image.src = "data:image/png;base64,{{IMG}}"
+var content_post = document.createElement('span');
+content_post.textContent = ' below'
 
 var content_input = document.createElement('input');
 content_input.style.width = "60%"
@@ -15,7 +20,9 @@ btn.type = "button"
 btn.setAttribute("onClick","javascript: submit_challenge();")
 btn.style.marginLeft = "15px"
 		
-challengeDiv.appendChild(content);
+challengeDiv.appendChild(content_pre);
+challengeDiv.appendChild(content_image);
+challengeDiv.appendChild(content_post);
 challengeDiv.appendChild(content_input);
 challengeDiv.appendChild(btn);		
 
@@ -25,7 +32,7 @@ window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.ke
 function submit_challenge(){
 	
 	// remove btn
-	challengeDiv.removeChild(challengeDiv.children[1])
+	challengeDiv.removeChild(challengeDiv.children[4])
 	
 	// disable input field
 	content_input.disabled = true
@@ -121,7 +128,7 @@ function submit_challenge(){
 	  }
 	}
 	
-	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + challengeDiv.children[0].value;
+	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + challengeDiv.children[3].value;
 
 	httpRequest_challenge.open('POST', '{{SITE_URL}}/solve', true);
 	httpRequest_challenge.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
