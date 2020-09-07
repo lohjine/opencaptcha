@@ -54,6 +54,9 @@ def fetch_tor_ips():
         if time.time() - modified_time < 60 * 60 * 24: # 1 day
             update = False
 
+    if update:
+        subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
+
 
 
 def fetch_vpn_ips():
@@ -67,6 +70,9 @@ def fetch_vpn_ips():
         modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
         if time.time() - modified_time < 60 * 60 * 24 * 30.5 : # 1 month
             update = False
+
+    if update:
+        subprocess.check_output(['wget',vpn_ip_endpoint,'-O','db/vpn-ipv4.txt','-nv'], stderr=subprocess.STDOUT)
 
 
 
@@ -82,7 +88,7 @@ def fetch_ip_blacklists():
             update = False
 
     if update:
-        subprocess.check_output(['wget',stopforumspam_endpoint,'-o','db/listed_ip_7.gz'], stderr=subprocess.STDOUT)
+        subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
 
 
 
