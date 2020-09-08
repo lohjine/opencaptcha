@@ -1,6 +1,6 @@
 # Concepts for each CAPTCHA, why they work, and when they don't work
 
-#### Q: Why am I giving out the secrets?!
+### Q: Why am I giving out the secrets?!
 
 This project is open source, so any motivated attacker can go through the repository to find out everything they need. By explaining the ideas and implementations behind the various CAPTCHAs, I hope that it can stimulate discussion regarding the effectiveness and possibly come up with improvements.
 
