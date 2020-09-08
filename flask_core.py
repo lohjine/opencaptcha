@@ -31,6 +31,8 @@ with open(os.path.join(dirname, 'challenges/waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
 with open(os.path.join(dirname, 'challenges/simplebuttonchallenge.js'), 'r') as f:
     challenge3 = f.read()
+with open(os.path.join(dirname, 'challenges/hardbuttonchallenge.js'), 'r') as f:
+    challenge4 = f.read()
 with open(os.path.join(dirname, 'challenges/copywordchallenge.js'), 'r') as f:
     challenge5 = f.read()
 with open(os.path.join(dirname, 'challenges/copywordchallenge_image.js'), 'r') as f:
@@ -70,7 +72,7 @@ def requestchallenge():
             string.ascii_lowercase +
             string.ascii_uppercase +
             string.digits) for _ in range(challenge_id_length))
-    
+
     challenge_level = 6
 
     try:
@@ -88,9 +90,15 @@ def requestchallenge():
             answer = 'a'
             challenge = challenge3.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
-        elif challenge_level == 4:
-            answer = 'a'
-            challenge = challenge3.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
+        elif challenge_level == 4: # change this up. simplest is doubling the button, but this only cuts random chance by half...
+            # we can create multiple invisible buttons?! -> at this point might as well roll this into 3
+            # challenge level is about the inconvenience posed to users, which hopefully scales well with bot protection
+            # or maybe can consider it a minor objective to slow down human-bot behaviour
+            answer = random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+            decoy = random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+
+            challenge = challenge4.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url). \
+                        replace('{{RIGHT}}',answer).replace('{{WRONG}}',decoy)
 
         elif challenge_level == 5:
             challenge = challenge5.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -98,7 +106,7 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6: # not blind-friendly
+        elif challenge_level >= 6: # not blind-friendly, can do a TTS version
             challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
             answer = random.choice(wordlist)
@@ -112,7 +120,7 @@ def requestchallenge():
             img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
             challenge = challenge.replace('{{IMG}}', img_str)
-            
+
         elif challenge_level == 7:
             pass
         elif challenge_level == 8:
