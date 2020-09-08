@@ -54,7 +54,6 @@ def opencaptcha(text):
 def requestchallenge():
 
     site_key = request.form.get('site_key', None)
-    ip = request.remote_addr
 
     # retrieve base challenge level from site settings
     if site_key is not None:
