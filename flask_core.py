@@ -157,7 +157,7 @@ def solvechallenge():
         return jsonify({'success': False, 'error': 'Invalid challenge_id'})
 
     if answer != challenge_details['answer']:
-        # TODO, delete challenge_id
+        db_connection.delete(challenge_id)
         return jsonify({'success': False, 'error': 'Wrong answer'})
 
     # answer is correct, generate token and record in database
@@ -168,6 +168,8 @@ def solvechallenge():
             string.ascii_lowercase +
             string.ascii_uppercase +
             string.digits) for _ in range(token_length))
+
+    db_connection.delete(challenge_id)
     db_connection.set(token, {'site_secret': site_secret,
                               'expires': pendulum.now(tz=0).replace(microsecond=0).add(minutes=2).to_iso8601_string(),
                               'ip': request.remote_addr},
@@ -197,12 +199,14 @@ def verify():
     if pendulum.from_format(token_details['expires'], 'YYYY-MM-DDTHH:mm:ssZZ') < pendulum.now():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
+# we delete tokens immediately once they are used
 #    if token_details['used'] == True:
-#        return jsonify({'success': False, 'error': 'Response token has already been used'})s
+#        return jsonify({'success': False, 'error': 'Response token has already been used'})
 
+# we do not check IP because of dynamic IP
 #    if ip is not None:
 #        if ip != token_details['ip']:
-#            return jsonify({'success':False,'error':'IP does not match'}) # TODO disable this first?
+#            return jsonify({'success':False,'error':'IP does not match'})
 
     if site_secret.strip() == token_details['site_secret']:
         #        token_details['used'] = True
