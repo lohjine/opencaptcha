@@ -126,9 +126,12 @@ def requestchallenge():
 
             challenge = challenge.replace('{{IMG}}', img_str)
 
-        elif challenge_level == 7:
+        elif challenge_level == 7: # assume they will ocr/transcribe at this point
+            # might want to do animal images / sounds
+            # but open source how are we going to permutate this?! - maybe frames from dog videos are better!!
+            # take inspiration from WAIT on how to make reversing it hard!
             pass
-        elif challenge_level == 8:
+        elif challenge_level == 8: # assume they will do basic ML at this point
             pass
         elif challenge_level == 9:
             pass
