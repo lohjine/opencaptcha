@@ -47,7 +47,7 @@ Even with the execution of Javascript, it is not obvious to the bot as to which 
 
 ### When it doesn't work
 
-When the bot is written to look out for the correct button to click via the button label, or randomly chooses for a 50% success rate.
+When the bot is written to look for the correct button to click, or randomly chooses for a 50% success rate.
 
 ## Level 5:
 
