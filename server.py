@@ -12,8 +12,6 @@ import subprocess
 import ipaddress
 
 
-# ok this one does the misc stuff
-
 
 # sqlite
 # - no need additional service
@@ -56,7 +54,8 @@ def fetch_tor_ips():
 
     if update:
         subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
-
+        return True
+    return False
 
 
 def fetch_vpn_ips():
@@ -73,6 +72,8 @@ def fetch_vpn_ips():
 
     if update:
         subprocess.check_output(['wget',vpn_ip_endpoint,'-O','db/vpn-ipv4.txt','-nv'], stderr=subprocess.STDOUT)
+        return True
+    return False
 
 
 
@@ -89,6 +90,8 @@ def fetch_ip_blacklists():
 
     if update:
         subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
+        return True
+    return False
 
 
 
@@ -158,6 +161,13 @@ def test(test='37.58.17.10'):
     return blacklisted
 
 
+def update_ip_lists():
+
+    updated = fetch_tor_ips()
+    updated2 = fetch_vpn_ips()
+    updated3 = fetch_ip_blacklists()
+
+    return True
 
 if __name__ == "__main__":
 
@@ -214,6 +224,7 @@ if __name__ == "__main__":
     if config['db']['type'] == 'sqlite':
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
 
+    schedule.every().hour.at(":00").do(update_ip_lists)
     print('Running...')
 
     while True:

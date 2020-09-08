@@ -49,7 +49,7 @@ Current available hosted services:
 
 * response (required): OpenCaptcha response token that was submitted
 * site_secret (required): Your SITE_SECRET
-* ip (optional): IP of user who submitted the form. If provided, this will be used to assess bot activity.
+* ip (optional): IP of user who submitted the form. ~~If provided, this will be used to assess bot activity.~~ TODO
 
 The endpoint will return a JSON with the following two fields:
 
@@ -92,7 +92,8 @@ python3 server.py &
 
 ## Todo
 
-* Implement challenges for higher difficulties (currently up to 5)
+* Implement challenges for higher difficulties (currently up to 6)
+* IP blacklisting
 * IP rate-limiting
 * More sophisticated bot detection techniques
 * Style elements to look nicer
