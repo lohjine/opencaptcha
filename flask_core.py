@@ -130,6 +130,7 @@ def requestchallenge():
             # might want to do animal images / sounds
             # but open source how are we going to permutate this?! - maybe frames from dog videos are better!!
             # take inspiration from WAIT on how to make reversing it hard!
+            # for sounds, i am not expert, but applying background music and noise should make it hard to match up to originals!
             pass
         elif challenge_level == 8: # assume they will do basic ML at this point
             pass

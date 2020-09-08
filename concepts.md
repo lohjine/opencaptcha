@@ -1,5 +1,10 @@
 # Concepts for each CAPTCHA, why they work, and when they don't work
 
+#### Q: Why am I giving out the secrets?!
+
+This project is open source, so any motivated attacker can go through the repository to find out everything they need. By explaining the ideas and implementations behind the various CAPTCHAs, I hope that it can stimulate discussion regarding the effectiveness and possibly come up with improvements.
+
+
 ## Level 1:
 
 ### Description
@@ -13,6 +18,8 @@ The simplest, most common bots do not execute Javascript. So there's no real nee
 ### When it doesn't work
 
 When the bot executes Javascript.
+
+## Level 2: (TODO)
 
 ## Level 3:
 
@@ -36,7 +43,7 @@ The challenge involves pressing 1 button out of 2 available options.
 
 ### Why it works
 
-Even with the execution of Javascript, it is not obvious to the bot that which button has to be pressed to solve the CAPTCHA.
+Even with the execution of Javascript, it is not obvious to the bot as to which button has to be pressed to solve the CAPTCHA.
 
 ### When it doesn't work
 
@@ -60,7 +67,7 @@ When the bot is written to detect the provided word and enter it into the input 
 
 ### Description
 
-The challenge involves reading a word in an image, or hearing the word, and submitting the word.
+The challenge involves reading a word in an image, or hearing the word in an audio clip, and submitting the word.
 
 ### Why it works
 
@@ -68,10 +75,27 @@ There is no simple programmatic way to derive words from an image or an audio cl
 
 ### When it doesn't work
 
-There are available OCR / Transcription libraries that can recognise text from images or audio clips.
+There are available OCR / Transcription libraries that can recognise text from images or speech from audio clips.
 
+## Level 7: (TODO)
 
+### Description
 
+The challenge involves identifying animals in images, or animal sounds in an audio clip. 
+
+Images are taken from videos to widen the input space (a 1-min video clip at 30fps contains 1800 images). Images are also perturbed to make reverse search even harder, using principles derived from [WAIT](https://trace.moe/faq). 
+
+Audio samples are mixed with background music and noise, to make it very hard to extract the pure animal audio sample.
+
+### Why it works
+
+Image classification is much harder than recognising text, and usually require a neural network model, which makes attacks much more expensive. Audio recognition is a less-researched field, and would take significant effort to produce a model that will work.
+
+### When it doesn't work
+
+When the bot has access to a GPU to run a neural network model to identify the animals. Alternatively, because this project is open-source and the original videos are available, a [Content-based Image Retrieval (CBIR)](https://go-talks.appspot.com/github.com/soruly/slides/whatanime.ga-2018.slide) approach can be applied.
+
+For animal sounds, the only available model I can find is [this](https://lis-unicamp.github.io/current-projects/wasis/), otherwise a neural network approach could work.
 
 
 # Anti-bot techniques common to all CAPTCHA levels
