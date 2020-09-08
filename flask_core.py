@@ -4,6 +4,7 @@ from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, to
 import random
 import string
 import pendulum
+import time
 import configparser
 import logging
 from challenges.wordlist import wordlist
@@ -74,6 +75,8 @@ def requestchallenge():
 
     challenge_level = 6
 
+    min_time = time.time() + 1
+
     try:
         # gen a challenge according to input parameters
         if challenge_level <= 1:
@@ -87,6 +90,7 @@ def requestchallenge():
 
         elif challenge_level == 3:
             answer = 'a'
+            min_time = time.time() + 0.5
             challenge = challenge3.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
         elif challenge_level == 4: # change this up. simplest is doubling the button, but this only cuts random chance by half...
@@ -95,6 +99,8 @@ def requestchallenge():
             # or maybe can consider it a minor objective to slow down human-bot behaviour
             answer = random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
             decoy = random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+
+            min_time = time.time() + 0.5
 
             challenge = challenge4.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url). \
                         replace('{{RIGHT}}',answer).replace('{{WRONG}}',decoy)
@@ -130,10 +136,11 @@ def requestchallenge():
             pass
         # record challenge to db
         db_connection.set(challenge_id, {'site_secret': site_secret,
-                                         'expires': pendulum.now(tz=0).replace(microsecond=0).add(minutes=5).to_iso8601_string(),
+                                         'expires': int(time.time()) + 5 * 60,
                                          'ip': request.remote_addr,
-                                         'answer': answer},
-                          expire=3600)
+                                         'answer': answer,
+                                         'min_time': min_time},
+                          expire=300)
         return challenge
     except Exception as e:
         logging.error(f"Challenge generation failed: {e}")
@@ -155,6 +162,12 @@ def solvechallenge():
     if challenge_details is None:
         return jsonify({'success': False, 'error': 'Invalid challenge_id'})
 
+    if challenge_details['expires'] < time.time():
+        return jsonify({'success': False, 'error': 'Challenge expired'})
+
+    if challenge_details['min_time'] > time.time():
+        return jsonify({'success': False, 'error': 'Wrong answer'})
+
     if answer != challenge_details['answer']:
         db_connection.delete(challenge_id)
         return jsonify({'success': False, 'error': 'Wrong answer'})
@@ -170,9 +183,9 @@ def solvechallenge():
 
     db_connection.delete(challenge_id)
     db_connection.set(token, {'site_secret': site_secret,
-                              'expires': pendulum.now(tz=0).replace(microsecond=0).add(minutes=2).to_iso8601_string(),
+                              'expires': int(time.time()) + 60*2,
                               'ip': request.remote_addr},
-                      expire=3600)
+                      expire=120)
 
     return jsonify({'success': True, 'token': token})
 
@@ -195,7 +208,7 @@ def verify():
     if token_details is None:
         return jsonify({'success': False, 'error': 'Response token is invalid'})
 
-    if pendulum.from_format(token_details['expires'], 'YYYY-MM-DDTHH:mm:ssZZ') < pendulum.now():
+    if token_details['expires'] < time.time():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
 # we delete tokens immediately once they are used
