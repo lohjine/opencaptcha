@@ -225,6 +225,7 @@ if __name__ == "__main__":
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
 
     schedule.every().hour.at(":00").do(update_ip_lists)
+
     print('Running...')
 
     while True:

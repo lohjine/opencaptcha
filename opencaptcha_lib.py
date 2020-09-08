@@ -1,8 +1,8 @@
 import configparser
 import logging
-import pendulum
 import os
 from ipaddress import ip_network, ip_address
+import time
 
 token_length = 11
 site_key_length = 10
@@ -103,11 +103,11 @@ class DBconnector:
                 return result
 
     def delete_old_keys(self, time_limit):
-        expire_time_limit = pendulum.now().add(hours=-1)
+        expire_time_limit = time.time() - 60*60 #pendulum.now().add(hours=-1)
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
                 if len(token) == token_length:
-                    if pendulum.from_format(token_details['expires'], 'YYYY-MM-DDTHH:mm:ssZZ') > expire_time_limit:
+                    if token_details['expires'] > expire_time_limit:
                         del self.db_connection[token]
         elif self.db_type == 'redis':
             # we set keys to be expired by redis automatically

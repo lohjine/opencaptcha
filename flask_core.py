@@ -3,7 +3,6 @@ from flask import request, url_for, abort, make_response, jsonify
 from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, token_length, challenge_id_length
 import random
 import string
-import pendulum
 import time
 import configparser
 import logging
@@ -79,6 +78,7 @@ def requestchallenge():
 
     try:
         # gen a challenge according to input parameters
+        # https://github.com/desirepath41/visualCaptcha/issues/24
         if challenge_level <= 1:
             answer = 'a'
             challenge = challenge1.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
