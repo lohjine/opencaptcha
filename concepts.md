@@ -67,7 +67,7 @@ When the bot is written to detect the provided word and enter it into the input 
 
 ### Description
 
-The challenge involves reading a word in an image, or solving a simple math problem in an audio clip, and submitting the word.
+The challenge involves reading a word in an image, or solving a simple math problem in an audio clip, and submitting the word. The visual task of copying a word is easier than solving a math problem, but the audio task of transcribing a spoken word can be very difficult depending on the word, and solving a math problem is easier.
 
 ### Why it works
 
