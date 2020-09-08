@@ -5,14 +5,26 @@ const content = document.createTextNode("Are you a human?");
 var btn = document.createElement('button');
 btn.innerHTML = "Yes";
 btn.type = "button"
-btn.setAttribute("onClick","javascript: submit_challenge();")
+btn.setAttribute("onClick","javascript: submit_challenge('{{RIGHT}}');")
 btn.style.marginLeft = "15px"
 		
+var btn2 = document.createElement('button');
+btn2.innerHTML = "No";
+btn2.type = "button"
+btn2.setAttribute("onClick","javascript: submit_challenge('{{WRONG}}');")
+btn2.style.marginLeft = "15px"
+
 challengeDiv.appendChild(content);
-challengeDiv.appendChild(btn);		
+if (Math.random() > 0.5){
+challengeDiv.appendChild(btn);
+challengeDiv.appendChild(btn2);
+} else {
+challengeDiv.appendChild(btn2);
+challengeDiv.appendChild(btn);
+}		
 
 
-function submit_challenge(){
+function submit_challenge(answer){
 	
 	// remove btn
 	challengeDiv.removeChild(challengeDiv.children[0])
@@ -41,72 +53,27 @@ function submit_challenge(){
 				console.log('success')
 				
 				
-				var content = document.createTextNode("Verification successful");
+				captcha_success(token)
 				
-				var tick = document.createElement('img');
-				tick.style.verticalAlign = "middle"
-				tick.src = tick_src
-				
-				challengeDiv.appendChild(tick);				
-				challengeDiv.appendChild(content);
-				
-				// create the form with fields
-				var opencaptcha_input = document.createElement('input');
-				opencaptcha_input.type = 'hidden'
-				opencaptcha_input.name = 'opencaptcha-response'
-				opencaptcha_input.value = res['token']	
-		
-				challengeDiv.appendChild(opencaptcha_input);
 				
 			} else {
-				console.log('FAIL challenge')
 				
-				var cross = document.createElement('img');
-				cross.style.verticalAlign = "middle"
-				cross.src = cross_src
-				
-				var content = document.createTextNode("Verification failed");
-				
-				challengeDiv.appendChild(cross);
-				challengeDiv.appendChild(content);
-				
-				offer_reload()
+				captcha_fail()
 			}
 			
 			
 		  } else {
 			  
-			
-			var cross = document.createElement('img');
-			cross.style.verticalAlign = "middle"
-			cross.src = cross_src
-				
-			var content = document.createTextNode("Submit captcha failed: " + httpRequest_challenge.status);
-			
-			challengeDiv.appendChild(cross);
-			challengeDiv.appendChild(content);
-			
-			offer_reload()
+			captcha_submit_fail(httpRequest_challenge.status)
 		  }
 		}
 	  }
 	  catch( e ) {
-		  
-		var cross = document.createElement('img');
-		cross.style.verticalAlign = "middle"
-		cross.src = cross_src
-				
-		challengeDiv.textContent = '';
-		var content = document.createTextNode("Submit captcha failed, exception: " + e);
-		
-		challengeDiv.appendChild(cross);
-		challengeDiv.appendChild(content);
-		
-		offer_reload()
+		captcha_submit_fail(' exception, ' + e)
 	  }
 	}
 	
-	var params = 'challenge_id={{CHALLENGE_ID}}&answer=a';
+	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + answer;
 
 	httpRequest_challenge.open('POST', '{{SITE_URL}}/solve', true);
 	httpRequest_challenge.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");

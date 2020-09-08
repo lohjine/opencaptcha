@@ -57,67 +57,22 @@ function submit_challenge(){
 				console.log('success')
 				
 				
-				var content = document.createTextNode("Verification successful");
-				
-				var tick = document.createElement('img');
-				tick.style.verticalAlign = "middle"
-				tick.src = tick_src
-				
-				challengeDiv.appendChild(tick);				
-				challengeDiv.appendChild(content);
-				
-				// create the form with fields
-				var opencaptcha_input = document.createElement('input');
-				opencaptcha_input.type = 'hidden'
-				opencaptcha_input.name = 'opencaptcha-response'
-				opencaptcha_input.value = res['token']	
-		
-				challengeDiv.appendChild(opencaptcha_input);
+				captcha_success(token)
 				
 			} else {
-				console.log('FAIL challenge')
-				
-				var cross = document.createElement('img');
-				cross.style.verticalAlign = "middle"
-				cross.src = cross_src
-				
-				var content = document.createTextNode("Verification failed");
-				
-				challengeDiv.appendChild(cross);
-				challengeDiv.appendChild(content);
-				
-				offer_reload()
+				captcha_fail()
 			}
 			
 			
 		  } else {
 			  
-			var cross = document.createElement('img');
-			cross.style.verticalAlign = "middle"
-			cross.src = cross_src
-				
-			var content = document.createTextNode("Submit captcha failed: " + httpRequest_challenge.status);
-			
-			challengeDiv.appendChild(cross);
-			challengeDiv.appendChild(content);
-			
-			offer_reload()
+			captcha_submit_fail(httpRequest_challenge.status)
 		  }
 		}
 	  }
 	  catch( e ) {
 		  
-		var cross = document.createElement('img');
-		cross.style.verticalAlign = "middle"
-		cross.src = cross_src
-				
-		challengeDiv.textContent = '';
-		var content = document.createTextNode("Submit captcha failed, exception: " + e);
-		
-		challengeDiv.appendChild(cross);
-		challengeDiv.appendChild(content);
-		
-		offer_reload()
+		captcha_submit_fail(' exception, ' + e)
 	  }
 	}
 	
