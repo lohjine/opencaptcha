@@ -54,6 +54,7 @@ def opencaptcha(text):
 def requestchallenge():
 
     site_key = request.form.get('site_key', None)
+    blind = request.form.get('blind', None)
 
     # retrieve base challenge level from site settings
     if site_key is not None:
@@ -112,19 +113,23 @@ def requestchallenge():
             challenge = challenge.replace('{{WORD}}', answer)
 
         elif challenge_level >= 6: # not blind-friendly, can do a TTS version
-            challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
-
-            answer = random.choice(wordlist)
-
-            image = Image.new('RGB', (80, 25), color = 'white')
-            d = ImageDraw.Draw(image)
-            font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
-            d.text((5,5), answer, font=font, fill=(0,0,0))
-            buffered = BytesIO()
-            image.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-            challenge = challenge.replace('{{IMG}}', img_str)
+            
+            if blind:
+                pass
+            else:
+                challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
+    
+                answer = random.choice(wordlist)
+    
+                image = Image.new('RGB', (80, 25), color = 'white')
+                d = ImageDraw.Draw(image)
+                font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
+                d.text((5,5), answer, font=font, fill=(0,0,0))
+                buffered = BytesIO()
+                image.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    
+                challenge = challenge.replace('{{IMG}}', img_str)
 
         elif challenge_level == 7: # assume they will ocr/transcribe at this point
             # might want to do animal images / sounds

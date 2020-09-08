@@ -67,7 +67,7 @@ When the bot is written to detect the provided word and enter it into the input 
 
 ### Description
 
-The challenge involves reading a word in an image, or hearing the word in an audio clip, and submitting the word.
+The challenge involves reading a word in an image, or solving a simple math problem in an audio clip, and submitting the word.
 
 ### Why it works
 
