@@ -166,6 +166,7 @@ def solvechallenge():
         return jsonify({'success': False, 'error': 'Challenge expired'})
 
     if challenge_details['min_time'] > time.time():
+        db_connection.delete(challenge_id)
         return jsonify({'success': False, 'error': 'Wrong answer'})
 
     if answer != challenge_details['answer']:
