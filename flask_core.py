@@ -11,6 +11,9 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import base64
 from io import BytesIO
+import pyttsx3
+from glob import glob
+import json
 
 app = Blueprint('app', __name__)
 
@@ -26,6 +29,7 @@ opencaptchajs = opencaptchajs.replace('{{SITE_URL}}', site_url)
 
 db_connection = DBconnector()
 
+engine = pyttsx3.init()
 
 with open(os.path.join(dirname, 'challenges/waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
@@ -37,7 +41,9 @@ with open(os.path.join(dirname, 'challenges/copywordchallenge.js'), 'r') as f:
     challenge5 = f.read()
 with open(os.path.join(dirname, 'challenges/copywordchallenge_image.js'), 'r') as f:
     challenge6 = f.read()
-
+with open(os.path.join(dirname, 'challenges/animalchallenge.js'), 'r') as f:
+    challenge7 = f.read()
+challenge7_animals = os.listdir('challenges/7_animals/source')
 
 @app.route('/<path:text>')
 def opencaptcha(text):
@@ -48,6 +54,11 @@ def opencaptcha(text):
         return opencaptchajs  # only continue working on polymorphic track once bot authors actually code against us
     else:
         abort(404)
+
+
+@app.route('/audio/<path:ttext>')
+def audio_challenge(text):
+    return send_from_directory(os.path.join('challenges','6_audio'), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -112,15 +123,29 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6: # not blind-friendly, can do a TTS version
-            
+        elif challenge_level >= 6: # push wh
+
             if blind:
-                pass
+
+                a = random.randint(0,49)
+                b = random.randint(0,49)
+
+                answer = a + b
+
+                filename = str(a) + str(b) + str(time.time()) + '.mp3' # create a unique filename
+                diskpath = os.path.join('challenges','6_audio',filename)
+
+                engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
+                # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
+                # NVM person might want to retrieve it again?!, or this is the best way to present the flow
+
+                challenge = filename
+
             else:
                 challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
-    
+
                 answer = random.choice(wordlist)
-    
+
                 image = Image.new('RGB', (80, 25), color = 'white')
                 d = ImageDraw.Draw(image)
                 font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
@@ -128,18 +153,51 @@ def requestchallenge():
                 buffered = BytesIO()
                 image.save(buffered, format="PNG")
                 img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    
+
                 challenge = challenge.replace('{{IMG}}', img_str)
 
-        elif challenge_level == 7: # assume they will ocr/transcribe at this point
+        elif challenge_level >= 7: # assume they will ocr/transcribe at this point
             # might want to do animal images / sounds
             # but open source how are we going to permutate this?! - maybe frames from dog videos are better!!
             # take inspiration from WAIT on how to make reversing it hard!
             # for sounds, i am not expert, but applying background music and noise should make it hard to match up to originals!
+
+            if blind:
+                pass
+            else:
+                # choose a random answer
+                correct_animal = random.choice(challenge7_animals)
+                wrong_animals = challenge7_animals.copy()
+                wrong_animals.remove(correct_animal)
+                number_matching = random.randint(2,8)
+
+                answer = [0,1,2,3,4,5,6,7,8,9]
+                random.shuffle(answer)
+                answer = answer[:number_matching]
+
+
+                # look for the latest folder to sample from
+                # do it individually for each animal to prevent race conditions
+                latest_folders = {}
+
+                for i in challenge7_animals:
+                    available_folders = os.listdir('challenges/7_animals/images/' + challenge7_animals[0])
+                    available_folders.sort()
+                    latest_folders[i] = glob('challenges/7_animals/images/' + i + '/' + available_folders[-1] + '/*')
+
+                images = []
+                for i in range(10):
+                    if i == answer:
+                        images.append(random.sample(latest_folders[correct_animal],1))
+                    else:
+                        wrong_animal = random.choice(wrong_animals)
+                        images.append(random.sample(latest_folders[wrong_animal],1))
+
+                challenge.replace({{images}}, json.dumps(images))
+
+        elif challenge_level >= 8: # assume they will do basic ML at this point
             pass
-        elif challenge_level == 8: # assume they will do basic ML at this point
-            pass
-        elif challenge_level == 9:
+        elif challenge_level >= 9:
             pass
         elif challenge_level >= 10:
             pass

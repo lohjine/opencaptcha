@@ -35,9 +35,6 @@ q.appendChild(logoDiv);
 
 // query server with details
 
-
-const params = 'site_key=' + sitekey;
-
 var reload_btn = document.createElement('button');
 reload_btn.innerHTML = "Reload Captcha"
 reload_btn.style.display = "none"
@@ -53,7 +50,7 @@ function offer_reload(){
 	reload_btn.style.display = "block";
 }
 
-function load_captcha(){
+function load_captcha(audio=false){
 	linkCap.style.display = "block"
 	reload_btn.style.display = "none";
 	
@@ -102,6 +99,13 @@ function load_captcha(){
 	}
 	httpRequest.open('POST', '{{SITE_URL}}/request', true);
 	httpRequest.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+	
+	if (audio){
+		params = 'site_key=' + sitekey + '&blind=true';
+	} else {
+		params = 'site_key=' + sitekey;
+	}
+	
 	httpRequest.send(params);
 	
 }

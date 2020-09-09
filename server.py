@@ -10,6 +10,7 @@ import gzip
 import shutil
 import subprocess
 import ipaddress
+from glob import glob
 
 
 
@@ -142,8 +143,52 @@ def consolidate_ip_blacklists():
 
     db_connection.set('ip_blacklist_update',time.time())
 
+    ## To be able to perform queries on DB layer directly, we expand the ip network ranges and do 3 exists query for
+    ## different octets
+    collapsed_ipnets_rest = []
+    for i in collapsed_ipnets:
+        if i.num_addresses == 1:
+            collapsed_ipnets_32.append(i.network_address.exploded)
+        else:
+            subnetmask = int(i.compressed.split('/')[1])
+            if subnetmask > 24:
 
-    return collapsed_ipnets_32, collapsed_ipnets
+                adds = 2**(32 - subnetmask)
+
+                base_octet = '.'.join(i.network_address.exploded.split('.')[:3]) + '.'
+                start_octet = int(i.network_address.exploded.split('.')[3])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    start_octet += 1
+
+            elif 24 >= subnetmask >= 17:
+                adds = 2**(24 - subnetmask)
+
+                base_octet = '.'.join(i.network_address.exploded.split('.')[:2]) + '.'
+                start_octet = int(i.network_address.exploded.split('.')[2])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    start_octet += 1
+
+            elif 16 >= subnetmask:
+                adds = 2**(16 - subnetmask)
+
+                base_octet = '.'.join(i.network_address.exploded.split('.')[:1]) + '.'
+                start_octet = int(i.network_address.exploded.split('.')[1])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    start_octet += 1
+
+    return collapsed_ipnets_32, collapsed_ipnets_rest
 
 
 def test(test='37.58.17.10'):
@@ -167,7 +212,33 @@ def update_ip_lists():
     updated2 = fetch_vpn_ips()
     updated3 = fetch_ip_blacklists()
 
+
+    if updated:
+        pass
+
+    if updated2:
+        pass
+
+    if updated3:
+        pass
+
     return True
+
+
+def clean_up_audio_challenges():
+    current_time = time.time()
+    for i in glob(os.path.join('challenges','6_audio','*')):
+        if current_time - os.lstat(i).st_mtime > 5 * 60:
+            os.remove(i)
+
+    return True
+
+
+def generate_animal_images():
+    # create a new tmp folder, populate it, then move to the correct folder, then delete if == 3 folders
+
+    return True
+
 
 if __name__ == "__main__":
 
@@ -225,6 +296,7 @@ if __name__ == "__main__":
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
 
     schedule.every().hour.at(":00").do(update_ip_lists)
+    schedule.every(30).minutes.do(clean_up_audio_challenges)
 
     print('Running...')
 
