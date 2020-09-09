@@ -96,7 +96,7 @@ python3 server.py &
 * IP blacklisting
 * IP rate-limiting
 * More sophisticated bot detection techniques
-* Style elements to look nicer
+* Style elements to look nicer / UX
 
 
 ## Contributing

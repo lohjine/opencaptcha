@@ -227,7 +227,7 @@ def update_ip_lists():
 
 def clean_up_audio_challenges():
     current_time = time.time()
-    for i in glob(os.path.join('challenges','6_audio','*')):
+    for i in glob(os.path.join('challenges','audio','*')):
         if current_time - os.lstat(i).st_mtime > 5 * 60:
             os.remove(i)
 
@@ -296,7 +296,7 @@ if __name__ == "__main__":
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
 
     schedule.every().hour.at(":00").do(update_ip_lists)
-    schedule.every(30).minutes.do(clean_up_audio_challenges)
+    schedule.every(10).minutes.do(clean_up_audio_challenges)
 
     print('Running...')
 
