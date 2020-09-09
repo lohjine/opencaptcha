@@ -30,6 +30,7 @@ opencaptchajs = opencaptchajs.replace('{{SITE_URL}}', site_url)
 db_connection = DBconnector()
 
 engine = pyttsx3.init()
+engine.setProperty('rate', 145)
 
 with open(os.path.join(dirname, 'challenges/waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
@@ -87,7 +88,7 @@ def requestchallenge():
             string.digits) for _ in range(challenge_id_length))
 
     challenge_level = 6
-
+    
     min_time = time.time() + 1
 
     try:
@@ -125,7 +126,7 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6: # push wh
+        elif challenge_level >= 6:
 
             if blind:
                 challenge = challenge6_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -133,7 +134,7 @@ def requestchallenge():
                 a = random.randint(0,49)
                 b = random.randint(0,49)
 
-                answer = a + b
+                answer = str(a + b)
 
                 filename = str(random.randint(0,1000)) + str(time.time())# create a unique filename
                 filename = filename.replace('.','') + '.mp3'
@@ -142,8 +143,6 @@ def requestchallenge():
                 engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
                 # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
                 # NVM person might want to retrieve it again?!, or this is the best way to present the flow
-
-                print(diskpath)
 
                 challenge = challenge.replace('{{AUDIO}}', diskpath)
 

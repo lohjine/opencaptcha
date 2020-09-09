@@ -3,13 +3,13 @@ challengeDiv.style.lineHeight = "normal"
 challengeDiv.style.marginTop = "3%"
 
 var content_pre = document.createElement('span');
-content_pre.textContent = 'Type the word '
+content_pre.textContent = 'Solve '
 var content_audio = document.createElement('audio');
 content_audio.src = '{{AUDIO}}'
 content_audio.controls = 'controls';
 content_audio.type = 'audio/mp3';
-var content_post = document.createElement('span');
-content_post.textContent = ' below'
+content_audio.style.width = '80%';
+content_audio.style.height = '30%';
 
 var content_input = document.createElement('input');
 content_input.style.width = "60%"
@@ -24,23 +24,17 @@ btn.style.marginLeft = "15px"
 		
 challengeDiv.appendChild(content_pre);
 challengeDiv.appendChild(content_audio);
-challengeDiv.appendChild(content_post);
 challengeDiv.appendChild(content_input);
 challengeDiv.appendChild(btn);		
+
 
 window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980
 
 
-function audio_challenge(){
-	
-	
-	
-}
-
 function submit_challenge(){
 	
 	// remove btn
-	challengeDiv.removeChild(challengeDiv.children[4])
+	challengeDiv.removeChild(challengeDiv.children[3])
 	
 	// disable input field
 	content_input.disabled = true
@@ -136,7 +130,7 @@ function submit_challenge(){
 	  }
 	}
 	
-	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + challengeDiv.children[3].value;
+	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + challengeDiv.children[2].value;
 
 	httpRequest_challenge.open('POST', '{{SITE_URL}}/solve', true);
 	httpRequest_challenge.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");

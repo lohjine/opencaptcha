@@ -19,12 +19,15 @@ btn.innerHTML = "Verify";
 btn.type = "button"
 btn.setAttribute("onClick","javascript: submit_challenge();")
 btn.style.marginLeft = "15px"
-		
+
+
 challengeDiv.appendChild(content_pre);
 challengeDiv.appendChild(content_image);
 challengeDiv.appendChild(content_post);
 challengeDiv.appendChild(content_input);
 challengeDiv.appendChild(btn);		
+
+offer_audio()
 
 window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980
 
