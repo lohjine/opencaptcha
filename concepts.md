@@ -97,6 +97,7 @@ When the bot has access to a GPU to run a neural network model to identify the a
 
 For animal sounds, the only available model I can find is [this](https://lis-unicamp.github.io/current-projects/wasis/). Otherwise a neural network approach or Shazam-like method could work.
 
+## Level 8-10: (TODO)
 
 # Anti-bot techniques common to all CAPTCHA levels
 
