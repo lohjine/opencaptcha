@@ -130,7 +130,9 @@ def requestchallenge():
                 a = random.randint(0,49)
                 b = random.randint(0,49)
 
-                filename = str(a) + str(b) + str(time.time()) + '.mp3'
+                answer = a + b
+
+                filename = str(a) + str(b) + str(time.time()) + '.mp3' # create a unique filename
                 diskpath = os.path.join('challenges','6_audio',filename)
 
                 engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
