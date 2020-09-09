@@ -11,6 +11,8 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import base64
 from io import BytesIO
+import pyttsx3
+
 
 app = Blueprint('app', __name__)
 
@@ -26,6 +28,7 @@ opencaptchajs = opencaptchajs.replace('{{SITE_URL}}', site_url)
 
 db_connection = DBconnector()
 
+engine = pyttsx3.init()
 
 with open(os.path.join(dirname, 'challenges/waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
@@ -48,6 +51,11 @@ def opencaptcha(text):
         return opencaptchajs  # only continue working on polymorphic track once bot authors actually code against us
     else:
         abort(404)
+
+
+@app.route('/audio/<path:ttext>')
+def audio_challenge(text):
+    return send_from_directory(os.path.join('challenges','6_audio'), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -112,15 +120,27 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6: # not blind-friendly, can do a TTS version
-            
+        elif challenge_level >= 6:
+
             if blind:
-                pass
+
+                a = random.randint(0,49)
+                b = random.randint(0,49)
+
+                filename = str(a) + str(b) + str(time.time()) + '.mp3'
+                diskpath = os.path.join('challenges','6_audio',filename)
+
+                engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
+                # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
+                # NVM person might want to retrieve it again?!, or this is the best way to present the flow
+
+                challenge = filename
+
             else:
                 challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
-    
+
                 answer = random.choice(wordlist)
-    
+
                 image = Image.new('RGB', (80, 25), color = 'white')
                 d = ImageDraw.Draw(image)
                 font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
@@ -128,7 +148,7 @@ def requestchallenge():
                 buffered = BytesIO()
                 image.save(buffered, format="PNG")
                 img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    
+
                 challenge = challenge.replace('{{IMG}}', img_str)
 
         elif challenge_level == 7: # assume they will ocr/transcribe at this point

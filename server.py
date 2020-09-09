@@ -10,6 +10,7 @@ import gzip
 import shutil
 import subprocess
 import ipaddress
+from glob import glob
 
 
 
@@ -169,6 +170,16 @@ def update_ip_lists():
 
     return True
 
+
+def clean_up_audio_challenges():
+    current_time = time.time()
+    for i in glob(os.path.join('challenges','6_audio','*')):
+        if current_time - os.lstat(i).st_mtime > 5 * 60:
+            os.remove(i)
+
+    return True
+
+
 if __name__ == "__main__":
 
     logging.basicConfig(filename='logs/server.log', filemode='w', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -225,6 +236,7 @@ if __name__ == "__main__":
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
 
     schedule.every().hour.at(":00").do(update_ip_lists)
+    schedule.every(30).minutes.do(clean_up_audio_challenges)
 
     print('Running...')
 
