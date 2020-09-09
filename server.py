@@ -212,6 +212,16 @@ def update_ip_lists():
     updated2 = fetch_vpn_ips()
     updated3 = fetch_ip_blacklists()
 
+
+    if updated:
+        pass
+
+    if updated2:
+        pass
+
+    if updated3:
+        pass
+
     return True
 
 
