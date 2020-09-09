@@ -123,7 +123,7 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6:
+        elif challenge_level >= 6: # push wh
 
             if blind:
 
