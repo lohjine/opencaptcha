@@ -3,7 +3,7 @@ challengeDiv.style.lineHeight = "normal"
 challengeDiv.style.marginTop = "3%"
 
 var content_pre = document.createElement('span');
-content_pre.textContent = 'Type the word '
+content_pre.textContent = 'Type '
 var content_image = document.createElement('img');
 content_image.src = "data:image/png;base64,{{IMG}}"
 var content_post = document.createElement('span');

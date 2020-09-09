@@ -3,4 +3,4 @@ redis
 sqlitedict
 schedule
 pillow
-pyttsx3==2.71
+pyttsx3==2.90

@@ -41,6 +41,8 @@ with open(os.path.join(dirname, 'challenges/copywordchallenge.js'), 'r') as f:
     challenge5 = f.read()
 with open(os.path.join(dirname, 'challenges/copywordchallenge_image.js'), 'r') as f:
     challenge6 = f.read()
+with open(os.path.join(dirname, 'challenges/copywordchallenge_audio.js'), 'r') as f:
+    challenge6_audio = f.read()
 with open(os.path.join(dirname, 'challenges/animalchallenge.js'), 'r') as f:
     challenge7 = f.read()
 challenge7_animals = os.listdir('challenges/7_animals/source')
@@ -56,9 +58,9 @@ def opencaptcha(text):
         abort(404)
 
 
-@app.route('/audio/<path:ttext>')
+@app.route('/challenges/audio/<path:text>')
 def audio_challenge(text):
-    return send_from_directory(os.path.join('challenges','6_audio'), text)
+    return send_from_directory(os.path.join('challenges','audio'), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -126,20 +128,24 @@ def requestchallenge():
         elif challenge_level >= 6: # push wh
 
             if blind:
+                challenge = challenge6_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
                 a = random.randint(0,49)
                 b = random.randint(0,49)
 
                 answer = a + b
 
-                filename = str(a) + str(b) + str(time.time()) + '.mp3' # create a unique filename
-                diskpath = os.path.join('challenges','6_audio',filename)
+                filename = str(random.randint(0,1000)) + str(time.time())# create a unique filename
+                filename = filename.replace('.','') + '.mp3'
+                diskpath = 'challenges/audio/' + filename
 
                 engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
                 # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
                 # NVM person might want to retrieve it again?!, or this is the best way to present the flow
 
-                challenge = filename
+                print(diskpath)
+
+                challenge = challenge.replace('{{AUDIO}}', diskpath)
 
             else:
                 challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
