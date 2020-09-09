@@ -180,6 +180,11 @@ def clean_up_audio_challenges():
     return True
 
 
+def generate_animal_images():
+
+
+    return True
+
 if __name__ == "__main__":
 
     logging.basicConfig(filename='logs/server.log', filemode='w', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
