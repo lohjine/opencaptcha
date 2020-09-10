@@ -12,16 +12,16 @@ challenge_id_length = 8
 dirname = os.path.dirname(__file__)
 
 
-def check_ip_in_lists(ip, db_connection, tor, blacklist, vpn):
+def check_ip_in_lists(ip, db_connection, tor_penalty, blacklist_penalty, vpn_penalty):
 
     # if tor penalty check against tor
-    if tor > 0:
+    if tor_penalty > 0:
         pass
 
-    if blacklist > 0:
+    if blacklist_penalty > 0:
         pass
 
-    if vpn > 0:
+    if vpn_penalty > 0:
         pass
 
     return tor_hit, blacklist_hit, vpn_hit
@@ -106,7 +106,7 @@ class DBconnector:
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
             # different methods for different data types, we only store dicts so this is fine
-            result = self.db_connection.hgetall(key)
+            result = self.db_connection.hgetall(key) # TODO: err what if this retrieves non-existent key?
             if len(result) == 0:
                 return default_return
             else:
