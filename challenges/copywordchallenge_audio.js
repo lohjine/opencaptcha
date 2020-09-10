@@ -16,16 +16,16 @@ content_input.style.width = "60%"
 content_input.style.marginTop = "3%"
 content_input.id = "noenter"
 
-var btn = document.createElement('button');
-btn.innerHTML = "Verify";
-btn.type = "button"
-btn.setAttribute("onClick","javascript: submit_challenge();")
-btn.style.marginLeft = "15px"
+var submit_challenge_btn = document.createElement('button');
+submit_challenge_btn.innerHTML = "Verify";
+submit_challenge_btn.type = "button"
+submit_challenge_btn.setAttribute("onClick","javascript: submit_challenge();")
+submit_challenge_btn.style.marginLeft = "15px"
 		
 challengeDiv.appendChild(content_pre);
 challengeDiv.appendChild(content_audio);
 challengeDiv.appendChild(content_input);
-challengeDiv.appendChild(btn);		
+challengeDiv.appendChild(submit_challenge_btn);		
 
 
 window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980
@@ -33,7 +33,7 @@ window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.ke
 
 function submit_challenge(){
 	
-	// remove btn
+	// remove submit_challenge_btn
 	challengeDiv.removeChild(challengeDiv.children[3])
 	
 	// disable input field

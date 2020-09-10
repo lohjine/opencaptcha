@@ -15,18 +15,18 @@ content_input.style.width = "60%"
 content_input.style.marginTop = "3%"
 content_input.id = "noenter"
 
-var btn = document.createElement('button');
-btn.innerHTML = "Verify";
-btn.type = "button"
-btn.setAttribute("onClick","javascript: submit_challenge();")
-btn.style.marginLeft = "15px"
+var submit_challenge_btn = document.createElement('button');
+submit_challenge_btn.innerHTML = "Verify";
+submit_challenge_btn.type = "button"
+submit_challenge_btn.setAttribute("onClick","javascript: submit_challenge();")
+submit_challenge_btn.style.marginLeft = "15px"
 
 
 challengeDiv.appendChild(content_pre);
 challengeDiv.appendChild(content_image);
 challengeDiv.appendChild(content_post);
 challengeDiv.appendChild(content_input);
-challengeDiv.appendChild(btn);		
+challengeDiv.appendChild(submit_challenge_btn);		
 
 offer_audio()
 
@@ -41,7 +41,7 @@ function audio_challenge(){
 
 function submit_challenge(){
 	
-	// remove btn
+	// remove submit_challenge_btn
 	challengeDiv.removeChild(challengeDiv.children[4])
 	
 	// disable input field
