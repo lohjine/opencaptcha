@@ -108,6 +108,6 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 # WONTDO: techniques that will not be implemented
 
-* Fingerprinting methods that have a chance of false positives, especially for users with disabilities.
+* Fingerprinting methods that have a chance of false positives, especially for users with special needs [eg](https://news.ycombinator.com/item?id=22114108).
 * Minimal effort will be put into detecting fingerprints that are specific to botting behaviour, such as headless browser properties. Reason being that this is an eternal cat-and-mouse game, and being open source, we are at a huge disadvantage because bypasses can be easily written.
 * Building user profiles

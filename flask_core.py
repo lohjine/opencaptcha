@@ -32,21 +32,21 @@ db_connection = DBconnector()
 engine = pyttsx3.init()
 engine.setProperty('rate', 145)
 
-with open(os.path.join(dirname, 'challenges/waitchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
-with open(os.path.join(dirname, 'challenges/simplebuttonchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','simplebuttonchallenge.js'), 'r') as f:
     challenge3 = f.read()
-with open(os.path.join(dirname, 'challenges/hardbuttonchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','hardbuttonchallenge.js'), 'r') as f:
     challenge4 = f.read()
-with open(os.path.join(dirname, 'challenges/copywordchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','copywordchallenge.js'), 'r') as f:
     challenge5 = f.read()
-with open(os.path.join(dirname, 'challenges/copywordchallenge_image.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','copywordchallenge_image.js'), 'r') as f:
     challenge6 = f.read()
-with open(os.path.join(dirname, 'challenges/copywordchallenge_audio.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','copywordchallenge_audio.js'), 'r') as f:
     challenge6_audio = f.read()
-with open(os.path.join(dirname, 'challenges/animalchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges','animalchallenge.js'), 'r') as f:
     challenge7 = f.read()
-challenge7_animals = os.listdir('challenges/7_animals/source')
+challenge7_animals = os.listdir(os.path.join(dirname, 'challenges','7_animals','source'))
 
 @app.route('/<path:text>')
 def opencaptcha(text):
@@ -61,7 +61,7 @@ def opencaptcha(text):
 
 @app.route('/challenges/audio/<path:text>')
 def audio_challenge(text):
-    return send_from_directory(os.path.join('challenges','audio'), text)
+    return send_from_directory(os.path.join(dirname, 'challenges','audio'), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -88,7 +88,7 @@ def requestchallenge():
             string.digits) for _ in range(challenge_id_length))
 
     challenge_level = 6
-    
+
     min_time = time.time() + 1
 
     try:
@@ -138,13 +138,15 @@ def requestchallenge():
 
                 filename = str(random.randint(0,1000)) + str(time.time())# create a unique filename
                 filename = filename.replace('.','') + '.mp3'
-                diskpath = 'challenges/audio/' + filename
+                diskpath = os.path.join(dirname, 'challenges','audio',filename)
+                webpath = 'challenges/audio/' + filename
 
-                engine.save_to_file(f'What is {a} plus {b}', diskpath); engine.runAndWait()
+                engine.save_to_file(f'What is {a} plus {b}', diskpath)
+                engine.runAndWait()
                 # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
                 # NVM person might want to retrieve it again?!, or this is the best way to present the flow
 
-                challenge = challenge.replace('{{AUDIO}}', diskpath)
+                challenge = challenge.replace('{{AUDIO}}', webpath)
 
             else:
                 challenge = challenge6.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -153,7 +155,7 @@ def requestchallenge():
 
                 image = Image.new('RGB', (80, 25), color = 'white')
                 d = ImageDraw.Draw(image)
-                font = ImageFont.truetype('challenges/fonts/cour.ttf', 14)
+                font = ImageFont.truetype(os.path.join(dirname, 'challenges','fonts','cour.ttf'), 14)
                 d.text((5,5), answer, font=font, fill=(0,0,0))
                 buffered = BytesIO()
                 image.save(buffered, format="PNG")
@@ -180,19 +182,18 @@ def requestchallenge():
                 random.shuffle(answer)
                 answer = answer[:number_matching]
 
-
                 # look for the latest folder to sample from
                 # do it individually for each animal to prevent race conditions
                 latest_folders = {}
 
                 for i in challenge7_animals:
-                    available_folders = os.listdir('challenges/7_animals/images/' + challenge7_animals[0])
+                    available_folders = os.listdir(os.path.join(dirname, 'challenges','7_animals','images',challenge7_animals[0]))
                     available_folders.sort()
-                    latest_folders[i] = glob('challenges/7_animals/images/' + i + '/' + available_folders[-1] + '/*')
+                    latest_folders[i] = glob(os.path.join(dirname, 'challenges','7_animals','images',i,available_folders[-1],'*'))
 
                 images = []
                 for i in range(10):
-                    if i == answer:
+                    if i in answer:
                         images.append(random.sample(latest_folders[correct_animal],1))
                     else:
                         wrong_animal = random.choice(wrong_animals)
@@ -237,31 +238,35 @@ def solvechallenge():
     if challenge_details['expires'] < time.time():
         return jsonify({'success': False, 'error': 'Challenge expired'})
 
-    if challenge_details['min_time'] > time.time():
+    try:
+        if challenge_details['min_time'] > time.time():
+            db_connection.delete(challenge_id)
+            return jsonify({'success': False, 'error': 'Wrong answer'})
+
+        if answer != challenge_details['answer']:
+            db_connection.delete(challenge_id)
+            return jsonify({'success': False, 'error': 'Wrong answer'})
+
+        # answer is correct, generate token and record in database
+        site_secret = challenge_details.get('site_secret', '')
+
+        token = ''.join(
+            random.SystemRandom().choice(
+                string.ascii_lowercase +
+                string.ascii_uppercase +
+                string.digits) for _ in range(token_length))
+
         db_connection.delete(challenge_id)
-        return jsonify({'success': False, 'error': 'Wrong answer'})
+        db_connection.set(token, {'site_secret': site_secret,
+                                  'expires': int(time.time()) + 60*2,
+                                  'ip': request.remote_addr},
+                          expire=120)
 
-    if answer != challenge_details['answer']:
-        db_connection.delete(challenge_id)
-        return jsonify({'success': False, 'error': 'Wrong answer'})
-
-    # answer is correct, generate token and record in database
-    site_secret = challenge_details.get('site_secret', '')
-
-    token = ''.join(
-        random.SystemRandom().choice(
-            string.ascii_lowercase +
-            string.ascii_uppercase +
-            string.digits) for _ in range(token_length))
-
-    db_connection.delete(challenge_id)
-    db_connection.set(token, {'site_secret': site_secret,
-                              'expires': int(time.time()) + 60*2,
-                              'ip': request.remote_addr},
-                      expire=120)
-
-    return jsonify({'success': True, 'token': token})
-
+        return jsonify({'success': True, 'token': token})
+    except:
+        return abort(500)
+    finally:
+        pass # set up for ip rate limiting
 
 @app.route('/verify', methods=['POST'])
 def verify():
@@ -303,14 +308,14 @@ def verify():
 
 @app.route('/robots.txt')
 def robots():
-    return send_from_directory(os.path.join(dirname, 'static/txt'), 'robots.txt')
+    return send_from_directory(os.path.join(dirname, 'static','txt'), 'robots.txt')
 
 @app.route('/test', methods=['GET', 'POST'])
 def main():
     if request.method == 'POST':
         print(request.form)
 
-    return send_from_directory(os.path.join(dirname,'static/js'), 'test.html')
+    return send_from_directory(os.path.join(dirname,'static','js'), 'test.html')
 
 
 if __name__ == '__main__':
