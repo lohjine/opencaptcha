@@ -240,6 +240,16 @@ def generate_animal_images():
     return True
 
 
+def ip_rate_limit():
+
+    # 1 / sec
+    # 6 / min
+    # 30 / hour
+    # 50 / day
+
+    return False
+
+
 if __name__ == "__main__":
 
     logging.basicConfig(filename='logs/server.log', filemode='w', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

@@ -101,6 +101,13 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 # Anti-bot techniques common to all CAPTCHA levels
 
-* A minimum solve time is applied as a form of rate-limiting.
+* A minimum solve time is applied as a form of rate-limiting
 * Dynamic challenge levels/CAPTCHA types make it more time-consuming for bot writers to code against
 * IP blacklists
+* IP rate-limiting
+
+# WONTDO: techniques that will not be implemented
+
+* Fingerprinting methods that have a chance of false positives, especially for users with disabilities.
+* Minimal effort will be put into detecting fingerprints that are specific to botting behaviour, such as headless browser properties. Reason being that this is an eternal cat-and-mouse game, and being open source, we are at a huge disadvantage because bypasses can be easily written.
+* Building user profiles
