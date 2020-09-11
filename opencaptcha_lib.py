@@ -12,33 +12,49 @@ challenge_id_length = 8
 dirname = os.path.dirname(__file__)
 
 
-def check_ip_in_lists(ip, db_connection, tor_penalty, blacklist_penalty, vpn_penalty):
-
-    blacklist_hit = False
-    tor_hit = False
-    vpn_hit = False
+def check_ip_in_lists(ip, db_connection, penalties):
+    """
     
-    if tor_penalty > 0:
-        if db_connection.set_exists('tor_ips',ip):
-            tor_hit = True
-
-    if blacklist_penalty > 0:
-        if db_connection.set_exists('blacklist_ips',ip):
-            blacklist_hit = True
-        elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:3])):
-            blacklist_hit = True
-        elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:2])):
-            blacklist_hit = True
-
-    if vpn_penalty > 0:
-        if db_connection.set_exists('vpn_ips',ip):
-            vpn_hit = True
-        elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:3])):
-            vpn_hit = True
-        elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:2])):
-            vpn_hit = True
+    Only applies the maximum penalty
     
-    return tor_hit, blacklist_hit, vpn_hit
+    
+    """
+    
+    penalties = {'tor':penalties['tor_penalty'], 'vpn':penalties['vpn_penalty'], 'blacklist':penalties['blacklist_penalty']}
+
+    penalties = sorted(penalties.items(), key= lambda x: x[1])
+    
+    penalty_added = 0
+    
+    for penalty_type, penalty_value in penalties:
+        
+        if penalty_value == 0:
+            continue
+        
+        if penalty_type == 'tor':
+            if db_connection.set_exists('tor_ips',ip):
+                penalty_added = penalty_value
+                
+        elif penalty_type == 'blacklist':
+            if db_connection.set_exists('blacklist_ips',ip):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:3])):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:2])):
+                penalty_added = penalty_value
+                
+        elif penalty_type == 'vpn':
+            if db_connection.set_exists('vpn_ips',ip):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:3])):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:2])):
+                penalty_added = penalty_value
+    
+        if penalty_added > 0:
+            break
+    
+    return penalty_added
 
 
 def validate_settings_ini():
@@ -163,7 +179,7 @@ class DBconnector:
 
 
     def delete_old_keys(self, time_limit):
-        expire_time_limit = time.time() - 60*60 #pendulum.now().add(hours=-1)
+        expire_time_limit = time.time() - 60*60
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
                 if len(token) == token_length:
