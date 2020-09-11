@@ -9,7 +9,6 @@ from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, va
 import gzip
 import shutil
 import subprocess
-import ipaddress
 from glob import glob
 
 
@@ -42,7 +41,7 @@ from glob import glob
 # http://iplists.firehol.org/
 # consider wiki
 
-def fetch_tor_ips():
+def update_tor_ips():
 
     tor_endpoint = 'https://check.torproject.org/torbulkexitlist'
 
@@ -50,11 +49,10 @@ def fetch_tor_ips():
     update = True
     if os.path.exists('db/torbulkexitlist'):
         modified_time = os.lstat('db/torbulkexitlist').st_mtime
-        if time.time() - modified_time < 60 * 60 * 24: # 1 day
+        if time.time() - modified_time > 60 * 60 * 24 - 60: # 1 day, add a minute offset so that a slight miss still gets updated
             update = False
 
     if update:
-        
         try:
             subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
@@ -62,6 +60,8 @@ def fetch_tor_ips():
             return False                    
         
         # update database        
+        logging.debug('Updating db for tor')
+        
         with open(os.path.join('db','torbulkexitlist')) as f:
             tor_ips = set(f.read().splitlines())
         
@@ -73,7 +73,7 @@ def fetch_tor_ips():
     return False
 
 
-def fetch_vpn_ips():
+def update_vpn_ips():
     """
     
     firehol_proxies, vpn-ipv4
@@ -90,7 +90,7 @@ def fetch_vpn_ips():
     retrieve_vpn_ipv4 = False
     if os.path.exists('db/listed_ip_7.zip'):
         modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 * 30.5 : # 1 month
+        if time.time() - modified_time > 60 * 60 * 24 * 30.5 - 60 : # 1 month
             retrieve_vpn_ipv4 = True
     else:
         retrieve_vpn_ipv4 = True
@@ -107,7 +107,7 @@ def fetch_vpn_ips():
     retrieve_firehol_proxies = False
     if not os.path.exists('db/firehol_proxies.netset'):
         modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 * 30.5 : # 1 day
+        if time.time() - modified_time > 60 * 60 * 24 - 60 : # 1 day
             retrieve_firehol_proxies = True
     else:
         retrieve_firehol_proxies = True
@@ -122,142 +122,145 @@ def fetch_vpn_ips():
             
 
     if update:
+        logging.debug('Updating db for vpn')
         # update database        
         with open(os.path.join('db','vpn-ipv4.txt')) as f:
             vpn_ipv4 = f.read().splitlines()[2:]
         
-        ipnets = []
+        transformed_ipnets = transform_ipnet_strings(vpn_ipv4)
         
-        transformed_ipnets_1 = transform_ipnet_strings(vpn_ipv4)
-    
-        for i in vpn_ipv4:
-            ipnets.append(ipaddress.IPv4Network(i))
-            
-            
         with open(os.path.join('db','firehol_proxies.netset')) as f:
             firehol_proxies = f.read().splitlines()
             
         firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
                            
-        transformed_ipnets_2 = transform_ipnet_strings(firehol_proxies) # 1630901
-        # efficiency loss = (1630895 - 1497613) / 1497613 * 100 = 8.9%, should be fine, now takes 200mb instead of 3GB
+        transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
+        # Ideally, we should use ipaddress library to combine ip address ranges, but the memory usage blows up to GBs
+        # Instead, we do a naive set combination, which only takes 200MB ram.
+        # Efficiency loss vs ipaddress handling = (1630895 - 1497613) / 1497613 * 100 = 8.9%
     
-        transformed_ipnets_1.update(transformed_ipnets_2)
-    
-        db_connection.set_set('vpn_ips',transformed_ipnets_1) 
+        db_connection.set_set('vpn_ips',transformed_ipnets) 
         db_connection.set_value('vpn_ips_updated', str(int(time.time())))
         
-        # just operate on txt much cheaper ffs don't use ipadress collapse_addresses even if it might be marginally better
-        # unless really have many many sources?        
         return True
     
     return False
 
 
 
-def fetch_ip_blacklists():
+def update_ip_blacklists():
 
     stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz' # set of IPs
-
-    # check whether already have an updated one, in case we restart process multiple times
-    update = True
-    if os.path.exists('db/listed_ip_7.gz'):
-        modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
-        if time.time() - modified_time < 60 * 60: # 1 hour
-            update = False
-
+    firehol_abusers_endpoint = 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
+    firehol_level1_endpoint = 'https://iplists.firehol.org/files/firehol_level1.netset'
+    firehol_level2_endpoint = 'https://iplists.firehol.org/files/firehol_level2.netset'
+    
+    
+    # check whether already have an updated one, in case we restart process multiple times   
+    
+    retrieve_stopforumspam = False
+    if not os.path.exists('db/listed_ip_7.gz'):
+        modified_time = os.lstat('db/listed_ip_7.gz').st_mtime
+        if time.time() - modified_time > 60 * 60 * 24 - 60: # 1 day
+            retrieve_stopforumspam = True
+    else:
+        retrieve_stopforumspam = True
+            
+    if retrieve_stopforumspam == True:
+        try:
+            subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch blacklisted IPs - stopforumspam_endpoint: {e}')
+            return False                
+        update = True
+        
+    retrieve_firehol_abusers = False
+    if not os.path.exists('db/firehol_abusers_1d.netset'):
+        modified_time = os.lstat('db/firehol_abusers_1d.netset').st_mtime
+        if time.time() - modified_time > 60 * 60 * 2 - 60 : # 2 hour
+            retrieve_firehol_abusers = True
+    else:
+        retrieve_firehol_abusers = True
+            
+    if retrieve_firehol_abusers == True:
+        try:
+            subprocess.check_output(['wget',firehol_abusers_endpoint,'-O','db/firehol_abusers_1d.netset','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch vpn IPs - firehol_abusers_endpoint: {e}')
+            return False                
+        update = True
+    
+    retrieve_firehol_level1 = False
+    if not os.path.exists('db/firehol_level1.netset'):
+        modified_time = os.lstat('db/firehol_level1.netset').st_mtime
+        if time.time() - modified_time > 60 * 60 * 24 - 60 : # 1 day
+            retrieve_firehol_level1 = True
+    else:
+        retrieve_firehol_level1 = True
+            
+    if retrieve_firehol_level1 == True:
+        try:
+            subprocess.check_output(['wget',firehol_level1_endpoint,'-O','db/firehol_level1.netset','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch vpn IPs - firehol_level1_endpoint: {e}')
+            return False                
+        update = True
+    
+    retrieve_firehol_level2 = False
+    if not os.path.exists('db/firehol_level2.netset'):
+        modified_time = os.lstat('db/firehol_level2.netset').st_mtime
+        if time.time() - modified_time > 60 * 60 * 12 - 60 : # 12 hour
+            retrieve_firehol_level2 = True
+    else:
+        retrieve_firehol_level2 = True
+            
+    if retrieve_firehol_level2 == True:
+        try:
+            subprocess.check_output(['wget',firehol_level2_endpoint,'-O','db/firehol_level2.netset','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch vpn IPs - firehol_level2_endpoint: {e}')
+            return False                
+        update = True
+    
     if update:
-        subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
-        return True
+        
+        logging.debug('Updating db for blacklist')
+        
+        with gzip.open('db/listed_ip_7.gz', 'rb') as f:
+            file_content = f.read()
     
-    
-    with gzip.open('db/listed_ip_7.gz', 'rb') as f:
-        file_content = f.read()
-
-    stopforumspam_ips = [i.decode('utf-8') for i in file_content.splitlines()]
-
+        transformed_ipnets = set([i.decode('utf-8') for i in file_content.splitlines()])
+        
+        with open(os.path.join('db','firehol_abusers_1d.netset')) as f:
+            firehol_abusers_1d = f.read().splitlines()
+            
+        firehol_abusers_1d = [i for i in firehol_abusers_1d if i[0] != '#']
+                           
+        transformed_ipnets = transform_ipnet_strings(firehol_abusers_1d, transformed_ipnets)
+        
+        with open(os.path.join('db','firehol_level1.netset')) as f:
+            firehol_level1 = f.read().splitlines()
+            
+        firehol_level1 = [i for i in firehol_level1 if i[0] != '#']
+                           
+        transformed_ipnets = transform_ipnet_strings(firehol_level1, transformed_ipnets)
+        
+        with open(os.path.join('db','firehol_level2.netset')) as f:
+            firehol_level2 = f.read().splitlines()
+            
+        firehol_level2 = [i for i in firehol_level2 if i[0] != '#']
+                           
+        transformed_ipnets = transform_ipnet_strings(firehol_level2, transformed_ipnets)
+        
+        db_connection.set_set('blacklist_ips',transformed_ipnets) 
+        db_connection.set_value('blacklist_ips_updated', str(int(time.time())))
+        
     return False
 
 
 
-def transform_ipnets(collapsed_ipnets):
 
-    transformed_ipnets = []
-
-    # separate out all /32 to a single set for faster checking
-#    collapsed_ipnets_32 = []
-#    collapsed_ipnets_rest = []
-#    for i in collapsed_ipnets:
-#        if i.num_addresses == 1:
-#            collapsed_ipnets_32.append(i.network_address.exploded)
-#        else:
-#            collapsed_ipnets_rest.append(i)
-
-#    collapsed_ipnets_32 = set(collapsed_ipnets_32)
-
-#    logging.info(f'{len(collapsed_ipnets_32)} ips + {len(collapsed_ipnets_rest)} ip ranges from vpn-ipv4.txt (vpn+dc)')
-#    logging.info(f'{len(stopforumspam_ips)} ips from listed_ip_7.gz (stopforumspam)')
-#    logging.info(f'{len(stopforumspam_ips)} ips from torbulkexitlist (tor exit)')
-#
-#    logging.info(f'Total ips: {len(collapsed_ipnets_32)}')
-
-    # update db
-    
-#    logging.debug('Updating database with blacklist IPs...')
-#    db_connection.set('collapsed_ipnets_32', collapsed_ipnets_32)
-#    db_connection.set('collapsed_ipnets', collapsed_ipnets)
-#
-#    db_connection.set('ip_blacklist_update',time.time())
-
-    ## To be able to perform queries on DB layer directly, we expand the ip network ranges and do 3 exists query for
-    ## different octets
-    for i in collapsed_ipnets:
-        if i.num_addresses == 1:
-            transformed_ipnets.append(i.network_address.exploded)
-        else:
-            subnetmask = int(i.compressed.split('/')[1])
-            if subnetmask > 24:
-
-                adds = 2**(32 - subnetmask)
-
-                base_octet = '.'.join(i.network_address.exploded.split('.')[:3]) + '.'
-                start_octet = int(i.network_address.exploded.split('.')[3])
-
-                for j in range(adds):
-                    if start_octet > 255 or start_octet < 0:
-                        raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    transformed_ipnets.append(base_octet + str(start_octet))
-                    start_octet += 1
-
-            elif 24 >= subnetmask >= 17:
-                adds = 2**(24 - subnetmask)
-
-                base_octet = '.'.join(i.network_address.exploded.split('.')[:2]) + '.'
-                start_octet = int(i.network_address.exploded.split('.')[2])
-
-                for j in range(adds):
-                    if start_octet > 255 or start_octet < 0:
-                        raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    transformed_ipnets.append(base_octet + str(start_octet))
-                    start_octet += 1
-
-            elif 16 >= subnetmask:
-                adds = 2**(16 - subnetmask)
-
-                base_octet = '.'.join(i.network_address.exploded.split('.')[:1]) + '.'
-                start_octet = int(i.network_address.exploded.split('.')[1])
-
-                for j in range(adds):
-                    if start_octet > 255 or start_octet < 0:
-                        raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    transformed_ipnets.append(base_octet + str(start_octet))
-                    start_octet += 1
-
-    return transformed_ipnets
-
-def transform_ipnet_strings(ipnets):
-    
-    transformed_ipnets = set()
+def transform_ipnet_strings(ipnets, transformed_ipnets = set()):
 
     for i in ipnets:
         if '/' not in i or i.split('/')[1] == 32:
@@ -278,7 +281,7 @@ def transform_ipnet_strings(ipnets):
                     transformed_ipnets.add(base_octet + str(start_octet))
                     start_octet += 1
 
-            elif 24 >= subnetmask >= 17:
+            elif 17 <= subnetmask <= 24:
                 adds = 2**(24 - subnetmask)
 
                 base_octet = '.'.join(ip.split('.')[:2]) + '.'
@@ -290,7 +293,7 @@ def transform_ipnet_strings(ipnets):
                     transformed_ipnets.add(base_octet + str(start_octet))
                     start_octet += 1
 
-            elif 16 >= subnetmask:
+            elif 9 <= subnetmask <= 16:
                 adds = 2**(16 - subnetmask)
 
                 base_octet = '.'.join(ip.split('.')[:1]) + '.'
@@ -301,40 +304,21 @@ def transform_ipnet_strings(ipnets):
                         raise ValueError(f'Invalid octet {i}, {start_octet}')
                     transformed_ipnets.add(base_octet + str(start_octet))
                     start_octet += 1
+            else:
+                # we skip anything that would be expanded to a x.0.0.0 check, so we only need to check IPs for 3 patterns
+                # x.x.x.x, x.x.x and x.x
+                # in effect, this misses ip ranges - 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 224.0.0.0/3
+                pass            
 
     return transformed_ipnets
     
 
-def test(test='37.58.17.10'):
-    # 1.27 ms ± 8.54 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
-    # might consider exploding collapsed_ipnets_rest, it could be faster. but 1ms is fast enough for now
-    blacklisted = False
-    if test in collapsed_ipnets_32:
-        blacklisted = True
-    else:
-        test = ipaddress.ip_address(test)
-        for i in collapsed_ipnets_rest:
-            if test in i:
-                blacklisted = True
-                break
-    return blacklisted
-
 
 def update_ip_lists():
 
-    updated = fetch_tor_ips()
-    updated2 = fetch_vpn_ips()
-    updated3 = fetch_ip_blacklists()
-
-
-    if updated:
-        pass
-
-    if updated2:
-        pass
-
-    if updated3:
-        pass
+    update_ip_blacklists()
+    update_tor_ips()
+    update_vpn_ips()
 
     return True
 

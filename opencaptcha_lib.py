@@ -14,16 +14,30 @@ dirname = os.path.dirname(__file__)
 
 def check_ip_in_lists(ip, db_connection, tor_penalty, blacklist_penalty, vpn_penalty):
 
-    # if tor penalty check against tor
+    blacklist_hit = False
+    tor_hit = False
+    vpn_hit = False
+    
     if tor_penalty > 0:
-        pass
+        if db_connection.set_exists('tor_ips',ip):
+            tor_hit = True
 
     if blacklist_penalty > 0:
-        pass
+        if db_connection.set_exists('blacklist_ips',ip):
+            blacklist_hit = True
+        elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:3])):
+            blacklist_hit = True
+        elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:2])):
+            blacklist_hit = True
 
     if vpn_penalty > 0:
-        pass
-
+        if db_connection.set_exists('vpn_ips',ip):
+            vpn_hit = True
+        elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:3])):
+            vpn_hit = True
+        elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:2])):
+            vpn_hit = True
+    
     return tor_hit, blacklist_hit, vpn_hit
 
 
@@ -107,6 +121,8 @@ class DBconnector:
             result = self.db_connection.get(key, value)        
             if result is None:
                 return default_return
+            else:
+                return result
 
     def set_dict(self, key, value, expire=None):
         if self.db_type == 'sqlite':
@@ -120,7 +136,6 @@ class DBconnector:
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
-            # different methods for different data types, we only store dicts so this is fine
             result = self.db_connection.hgetall(key) # if this retrieves non-existent key? -> empty dict
             if len(result) == 0:
                 return default_return
@@ -129,19 +144,21 @@ class DBconnector:
 
     def set_set(self, key, values):
         if self.db_type == 'sqlite':
-            pass # really poor perf if keep passing to disk, bring it to memory, then need a flag to check if need to renew
+            self.db_connection[key] = values
         elif self.db_type == 'redis':
-            self.db_connection.delete(key) # todo test delete blank!
-            # race condition tbh..
-            self.db_connection.sadd(key, values)
-            # we can rewrite this as retrieve, get the diffs, do the subtract and add!!
+            p = self.db_connection.pipeline()
+            p.delete(key)
+            p.sadd(key, values)
+            p.execute()
             return True
 
     def set_exists(self, key, value):
         if self.db_type == 'sqlite':
-            pass
+            # could be really poor perf if keep retrieving from disk to check
+            # consider bring it to memory, then need a flag to check if need to renew
+            return value in self.db_connection[key]
         elif self.db_type == 'redis':
-            return self.db_connection.sismember(key, value) # might want to combine into 1 lua call?
+            return self.db_connection.sismember(key, value) # might want to combine into 1 lua call for ip checks?
         # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
 
 
