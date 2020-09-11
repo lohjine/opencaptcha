@@ -132,3 +132,4 @@ test_flask.py
 site_details.txt
 challenges/audio/*.mp3
 old/
+trash.py

@@ -127,6 +127,8 @@ def fetch_vpn_ips():
             vpn_ipv4 = f.read().splitlines()[2:]
         
         ipnets = []
+        
+        transformed_ipnets_1 = transform_ipnet_strings(vpn_ipv4)
     
         for i in vpn_ipv4:
             ipnets.append(ipaddress.IPv4Network(i))
@@ -136,19 +138,17 @@ def fetch_vpn_ips():
             firehol_proxies = f.read().splitlines()
             
         firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
-        firehol_proxies = [ipaddress.IPv4Network(i+'/32') if '/' not in i else ipaddress.IPv4Network(i) for i in firehol_proxies ]
-        
-        ipnets.extend(firehol_proxies)
                            
-        collapsed_ipnets = [i for i in ipaddress.collapse_addresses(ipnets)]
-        
-        collapsed_ipnets_32, collapsed_ipnets_rest = split_ipnets(collapsed_ipnets)
-        
-        
-        db_connection.set_set('vpn_ips_32',collapsed_ipnets_32) 
-        db_connection.set_set('vpn_ips_rest',collapsed_ipnets_rest)
+        transformed_ipnets_2 = transform_ipnet_strings(firehol_proxies) # 1630901
+        # efficiency loss = (1630895 - 1497613) / 1497613 * 100 = 8.9%, should be fine, now takes 200mb instead of 3GB
+    
+        transformed_ipnets_1.update(transformed_ipnets_2)
+    
+        db_connection.set_set('vpn_ips',transformed_ipnets_1) 
         db_connection.set_value('vpn_ips_updated', str(int(time.time())))
         
+        # just operate on txt much cheaper ffs don't use ipadress collapse_addresses even if it might be marginally better
+        # unless really have many many sources?        
         return True
     
     return False
@@ -255,6 +255,55 @@ def transform_ipnets(collapsed_ipnets):
 
     return transformed_ipnets
 
+def transform_ipnet_strings(ipnets):
+    
+    transformed_ipnets = set()
+
+    for i in ipnets:
+        if '/' not in i or i.split('/')[1] == 32:
+            transformed_ipnets.add(i.split('/')[0])
+        else:
+            ip, subnetmask = i.split('/')
+            subnetmask = int(subnetmask)
+            if subnetmask > 24:
+
+                adds = 2**(32 - subnetmask)
+
+                base_octet = '.'.join(ip.split('.')[:3]) + '.'
+                start_octet = int(ip.split('.')[3])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    transformed_ipnets.add(base_octet + str(start_octet))
+                    start_octet += 1
+
+            elif 24 >= subnetmask >= 17:
+                adds = 2**(24 - subnetmask)
+
+                base_octet = '.'.join(ip.split('.')[:2]) + '.'
+                start_octet = int(ip.split('.')[2])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    transformed_ipnets.add(base_octet + str(start_octet))
+                    start_octet += 1
+
+            elif 16 >= subnetmask:
+                adds = 2**(16 - subnetmask)
+
+                base_octet = '.'.join(ip.split('.')[:1]) + '.'
+                start_octet = int(ip.split('.')[1])
+
+                for j in range(adds):
+                    if start_octet > 255 or start_octet < 0:
+                        raise ValueError(f'Invalid octet {i}, {start_octet}')
+                    transformed_ipnets.add(base_octet + str(start_octet))
+                    start_octet += 1
+
+    return transformed_ipnets
+    
 
 def test(test='37.58.17.10'):
     # 1.27 ms ± 8.54 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
