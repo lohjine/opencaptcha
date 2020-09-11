@@ -7,10 +7,8 @@ import random
 import string
 from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, validate_settings_ini
 import gzip
-import shutil
-import subprocess
 from glob import glob
-
+import urllib.request
 
 # sqlite
 # - no need additional service
@@ -25,6 +23,11 @@ from glob import glob
 
 # consider wiki block list?
 
+
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Wget/1.12 (linux-gnu)')] # otherwise firehol blocks us
+urllib.request.install_opener(opener)
+
 def update_tor_ips():
 
     tor_endpoint = 'https://check.torproject.org/torbulkexitlist'
@@ -37,7 +40,7 @@ def update_tor_ips():
 
     if update:
         try:
-            subprocess.check_output(['wget', tor_endpoint, '-O', 'db/torbulkexitlist', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(tor_endpoint, 'db/torbulkexitlist')
         except Exception as e:
             logging.error(f'Failed to fetch tor IPs: {e}')
             return False
@@ -78,7 +81,7 @@ def update_vpn_ips():
 
     if retrieve_vpn_ipv4 == True:
         try:
-            subprocess.check_output(['wget', vpn_ipv4_endpoint, '-O', 'db/vpn-ipv4.txt', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(vpn_ipv4_endpoint, 'db/vpn-ipv4.txt')
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - vpn_ipv4_endpoint: {e}')
             return False
@@ -94,7 +97,7 @@ def update_vpn_ips():
 
     if retrieve_firehol_proxies == True:
         try:
-            subprocess.check_output(['wget', firehol_proxies_endpoint, '-O', 'db/firehol_proxies.netset', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(firehol_proxies_endpoint, 'db/firehol_proxies.netset')
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_proxies_endpoint: {e}')
             return False
@@ -143,7 +146,7 @@ def update_ip_blacklists():
 
     if retrieve_stopforumspam == True:
         try:
-            subprocess.check_output(['wget', stopforumspam_endpoint, '-O', 'db/listed_ip_7.gz', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(stopforumspam_endpoint, 'db/listed_ip_7.gz')
         except Exception as e:
             logging.error(f'Failed to fetch blacklisted IPs - stopforumspam_endpoint: {e}')
             return False
@@ -159,8 +162,7 @@ def update_ip_blacklists():
 
     if retrieve_firehol_abusers == True:
         try:
-            subprocess.check_output(['wget', firehol_abusers_endpoint, '-O',
-                                     'db/firehol_abusers_1d.netset', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(firehol_abusers_endpoint, 'db/firehol_abusers_1d.netset')
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_abusers_endpoint: {e}')
             return False
@@ -176,7 +178,7 @@ def update_ip_blacklists():
 
     if retrieve_firehol_level1 == True:
         try:
-            subprocess.check_output(['wget', firehol_level1_endpoint, '-O', 'db/firehol_level1.netset', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(firehol_level1_endpoint, 'db/firehol_level1.netset')
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_level1_endpoint: {e}')
             return False
@@ -192,7 +194,7 @@ def update_ip_blacklists():
 
     if retrieve_firehol_level2 == True:
         try:
-            subprocess.check_output(['wget', firehol_level2_endpoint, '-O', 'db/firehol_level2.netset', '-nv'], stderr=subprocess.STDOUT)
+            urllib.request.urlretrieve(firehol_level2_endpoint, 'db/firehol_level2.netset')
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_level2_endpoint: {e}')
             return False

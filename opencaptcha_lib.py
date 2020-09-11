@@ -107,6 +107,8 @@ class DBconnector:
         if self.db_type == 'sqlite':
             from sqlitedict import SqliteDict
             self.db_connection = SqliteDict(os.path.join(dirname, 'db/keyvalue.db'), autocommit=True, tablename='keyvalue')
+            self.sets = {}
+            self.sets_updated = {}
         elif self.db_type == 'redis':
             import redis
             redis_ip = config['redis']['ip']
@@ -170,9 +172,21 @@ class DBconnector:
 
     def set_exists(self, key, value):
         if self.db_type == 'sqlite':
-            # could be really poor perf if keep retrieving from disk to check
-            # consider bring it to memory, then need a flag to check if need to renew
-            return value in self.db_connection[key]
+            # really poor perf if keep retrieving from disk to check
+            # cache in memory, only check to confirm that cache is updated
+            if key not in self.sets:
+                self.sets[key] = self.db_connection[key]
+                self.sets_updated[key] = self.db_connection[key+'_updated']
+            else:
+                if time.time() - self.sets_updated['vpn_ips'] > 60:
+                    updated_check = self.db_connection[key+'_updated']
+                    if updated_check > self.sets_updated[key]:
+                        self.sets[key] = self.db_connection[key]                    
+                        self.sets_updated[key] = updated_check
+                    else:               
+                        self.sets_updated[key] = time.time() - 5
+                        
+            return value in self.sets[key]
         elif self.db_type == 'redis':
             return self.db_connection.sismember(key, value)  # might want to combine into 1 lua call for ip checks?
         # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
