@@ -74,7 +74,7 @@ def requestchallenge():
         return abort(400)
 
     # retrieve base challenge level from site settings
-    site_details = db_connection.get(site_key, None)
+    site_details = db_connection.get_dict(site_key, None)
     if site_details is None:
         return jsonify({'success': False, 'error': 'Invalid site key'})
     challenge_level = int(site_details['challenge_level'])
@@ -229,7 +229,7 @@ def solvechallenge():
     if challenge_id is None:
         return jsonify({'success': False, 'error': 'Missing challenge_id'})
 
-    challenge_details = db_connection.get(challenge_id, None)
+    challenge_details = db_connection.get_dict(challenge_id, None)
 
     if challenge_details is None:
         return jsonify({'success': False, 'error': 'Invalid challenge_id'})
@@ -280,7 +280,7 @@ def verify():
     if site_secret is None:
         return jsonify({'success': False, 'error': 'Site_secret missing'})
 
-    token_details = db_connection.get(token.strip())
+    token_details = db_connection.get_dict(token.strip())
 
     if token_details is None:
         return jsonify({'success': False, 'error': 'Response token is invalid'})

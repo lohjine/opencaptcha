@@ -54,26 +54,103 @@ def fetch_tor_ips():
             update = False
 
     if update:
-        subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
+        
+        try:
+            subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch tor IPs: {e}')
+            return False                    
+        
+        # update database        
+        with open(os.path.join('db','torbulkexitlist')) as f:
+            tor_ips = set(f.read().splitlines())
+        
+        db_connection.set_set('tor_ips',tor_ips)
+        db_connection.set_value('tor_ips_updated', str(int(time.time())))
+        
         return True
+    
     return False
 
 
 def fetch_vpn_ips():
+    """
+    
+    firehol_proxies, vpn-ipv4
+    
+    """
 
-    vpn_ip_endpoint = 'https://github.com/ejrv/VPNs/blob/master/vpn-ipv4.txt' # for commercial & datacenter, not very updated
+    vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt' # for commercial & datacenter, not very updated
+    firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
     # so update once a month
     # also needs to be collated
 
-    update = True
+    update = False
+    
+    retrieve_vpn_ipv4 = False
     if os.path.exists('db/listed_ip_7.zip'):
         modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
-        if time.time() - modified_time < 60 * 60 * 24 * 30.5 : # 1 month
-            update = False
+        if time.time() - modified_time > 60 * 60 * 24 * 30.5 : # 1 month
+            retrieve_vpn_ipv4 = True
+    else:
+        retrieve_vpn_ipv4 = True
+        
+    if retrieve_vpn_ipv4 == True:
+        try:
+            subprocess.check_output(['wget',vpn_ipv4_endpoint,'-O','db/vpn-ipv4.txt','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch vpn IPs - vpn_ipv4_endpoint: {e}')
+            return False                
+        update = True
+        
+    
+    retrieve_firehol_proxies = False
+    if not os.path.exists('db/firehol_proxies.netset'):
+        modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
+        if time.time() - modified_time > 60 * 60 * 24 * 30.5 : # 1 day
+            retrieve_firehol_proxies = True
+    else:
+        retrieve_firehol_proxies = True
+            
+    if retrieve_firehol_proxies == True:
+        try:
+            subprocess.check_output(['wget',firehol_proxies_endpoint,'-O','db/firehol_proxies.netset','-nv'], stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f'Failed to fetch vpn IPs - firehol_proxies_endpoint: {e}')
+            return False                
+        update = True
+            
 
     if update:
-        subprocess.check_output(['wget',vpn_ip_endpoint,'-O','db/vpn-ipv4.txt','-nv'], stderr=subprocess.STDOUT)
+        # update database        
+        with open(os.path.join('db','vpn-ipv4.txt')) as f:
+            vpn_ipv4 = f.read().splitlines()[2:]
+        
+        ipnets = []
+    
+        for i in vpn_ipv4:
+            ipnets.append(ipaddress.IPv4Network(i))
+            
+            
+        with open(os.path.join('db','firehol_proxies.netset')) as f:
+            firehol_proxies = f.read().splitlines()
+            
+        firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
+        firehol_proxies = [ipaddress.IPv4Network(i+'/32') if '/' not in i else ipaddress.IPv4Network(i) for i in firehol_proxies ]
+        
+        ipnets.extend(firehol_proxies)
+                           
+        collapsed_ipnets = [i for i in ipaddress.collapse_addresses(ipnets)]
+        
+        collapsed_ipnets_32, collapsed_ipnets_rest = split_ipnets(collapsed_ipnets)
+        
+        
+        db_connection.set_set('vpn_ips_32',collapsed_ipnets_32) 
+        db_connection.set_set('vpn_ips_rest',collapsed_ipnets_rest)
+        db_connection.set_value('vpn_ips_updated', str(int(time.time())))
+        
         return True
+    
     return False
 
 
@@ -92,63 +169,51 @@ def fetch_ip_blacklists():
     if update:
         subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
         return True
-    return False
-
-
-
-def consolidate_ip_blacklists():
-    # NO WAIT DON'T COMBINE WE HAVE SEPARATE PENALTIES !?
-    # hmm, we can apply the highest penalty applicable
-
-
-    logging.debug('Consolidating blacklist IPs...')
-
-    with open(r'db/vpn-ipv4.txt','r') as f:
-        q = f.readlines()[2:]
-
-    ipnets = []
-
-    for i in q:
-        ipnets.append(ipaddress.IPv4Network(i.strip()))
-
-    collapsed_ipnets = [i for i in ipaddress.collapse_addresses(ipnets)]
-
-    # separate out all /32 to a single set for faster checking
-    collapsed_ipnets_32 = []
-    collapsed_ipnets_rest = []
-    for i in collapsed_ipnets:
-        if i.num_addresses == 1:
-            collapsed_ipnets_32.append(i.network_address.exploded)
-        else:
-            collapsed_ipnets_rest.append(i)
-
-    collapsed_ipnets_32 = set(collapsed_ipnets_32)
-
-
+    
+    
     with gzip.open('db/listed_ip_7.gz', 'rb') as f:
         file_content = f.read()
 
     stopforumspam_ips = [i.decode('utf-8') for i in file_content.splitlines()]
 
-    logging.info(f'{len(collapsed_ipnets_32)} ips + {len(collapsed_ipnets_rest)} ip ranges from vpn-ipv4.txt (vpn+dc)')
-    logging.info(f'{len(stopforumspam_ips)} ips from listed_ip_7.gz (stopforumspam)')
-    logging.info(f'{len(stopforumspam_ips)} ips from torbulkexitlist (tor exit)')
+    return False
 
-    logging.info(f'Total ips: {len(collapsed_ipnets_32)}')
+
+
+def transform_ipnets(collapsed_ipnets):
+
+    transformed_ipnets = []
+
+    # separate out all /32 to a single set for faster checking
+#    collapsed_ipnets_32 = []
+#    collapsed_ipnets_rest = []
+#    for i in collapsed_ipnets:
+#        if i.num_addresses == 1:
+#            collapsed_ipnets_32.append(i.network_address.exploded)
+#        else:
+#            collapsed_ipnets_rest.append(i)
+
+#    collapsed_ipnets_32 = set(collapsed_ipnets_32)
+
+#    logging.info(f'{len(collapsed_ipnets_32)} ips + {len(collapsed_ipnets_rest)} ip ranges from vpn-ipv4.txt (vpn+dc)')
+#    logging.info(f'{len(stopforumspam_ips)} ips from listed_ip_7.gz (stopforumspam)')
+#    logging.info(f'{len(stopforumspam_ips)} ips from torbulkexitlist (tor exit)')
+#
+#    logging.info(f'Total ips: {len(collapsed_ipnets_32)}')
 
     # update db
-    logging.debug('Updating database with blacklist IPs...')
-    db_connection.set('collapsed_ipnets_32', collapsed_ipnets_32)
-    db_connection.set('collapsed_ipnets', collapsed_ipnets)
-
-    db_connection.set('ip_blacklist_update',time.time())
+    
+#    logging.debug('Updating database with blacklist IPs...')
+#    db_connection.set('collapsed_ipnets_32', collapsed_ipnets_32)
+#    db_connection.set('collapsed_ipnets', collapsed_ipnets)
+#
+#    db_connection.set('ip_blacklist_update',time.time())
 
     ## To be able to perform queries on DB layer directly, we expand the ip network ranges and do 3 exists query for
     ## different octets
-    collapsed_ipnets_rest = []
     for i in collapsed_ipnets:
         if i.num_addresses == 1:
-            collapsed_ipnets_32.append(i.network_address.exploded)
+            transformed_ipnets.append(i.network_address.exploded)
         else:
             subnetmask = int(i.compressed.split('/')[1])
             if subnetmask > 24:
@@ -161,7 +226,7 @@ def consolidate_ip_blacklists():
                 for j in range(adds):
                     if start_octet > 255 or start_octet < 0:
                         raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    transformed_ipnets.append(base_octet + str(start_octet))
                     start_octet += 1
 
             elif 24 >= subnetmask >= 17:
@@ -173,7 +238,7 @@ def consolidate_ip_blacklists():
                 for j in range(adds):
                     if start_octet > 255 or start_octet < 0:
                         raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    transformed_ipnets.append(base_octet + str(start_octet))
                     start_octet += 1
 
             elif 16 >= subnetmask:
@@ -185,10 +250,10 @@ def consolidate_ip_blacklists():
                 for j in range(adds):
                     if start_octet > 255 or start_octet < 0:
                         raise ValueError(f'Invalid octet {i}, {start_octet}')
-                    collapsed_ipnets_rest.append(base_octet + str(start_octet))
+                    transformed_ipnets.append(base_octet + str(start_octet))
                     start_octet += 1
 
-    return collapsed_ipnets_32, collapsed_ipnets_rest
+    return transformed_ipnets
 
 
 def test(test='37.58.17.10'):

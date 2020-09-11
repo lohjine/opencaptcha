@@ -93,7 +93,22 @@ class DBconnector:
         else:
             raise ValueError(f"config db type has to be either sqlite or redis, was {config['db']['type']}")
 
-    def set(self, key, value, expire=None):
+    def set_value(self,key, value):
+        if self.db_type == 'sqlite':
+            self.db_connection[key] = value
+        elif self.db_type == 'redis':
+            # anything that enters here becomes a string
+            self.db_connection.set(key, value)        
+            
+    def get_value(self, key, value, default_return=None):
+        if self.db_type == 'sqlite':
+            return self.db_connection.get(key, default_return)
+        elif self.db_type == 'redis':
+            result = self.db_connection.get(key, value)        
+            if result is None:
+                return default_return
+
+    def set_dict(self, key, value, expire=None):
         if self.db_type == 'sqlite':
             self.db_connection[key] = value
         elif self.db_type == 'redis':
@@ -101,12 +116,12 @@ class DBconnector:
             if expire:
                 self.db_connection.expire(key, expire)
 
-    def get(self, key, default_return=None):
+    def get_dict(self, key, default_return=None):
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
             # different methods for different data types, we only store dicts so this is fine
-            result = self.db_connection.hgetall(key) # TODO: err what if this retrieves non-existent key?
+            result = self.db_connection.hgetall(key) # if this retrieves non-existent key? -> empty dict
             if len(result) == 0:
                 return default_return
             else:

@@ -49,7 +49,6 @@ Current available hosted services:
 
 * response (required): OpenCaptcha response token that was submitted
 * site_secret (required): Your SITE_SECRET
-* ip (optional): IP of user who submitted the form. ~~If provided, this will be used to assess bot activity.~~ TODO
 
 The endpoint will return a JSON with the following two fields:
 
