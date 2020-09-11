@@ -14,46 +14,46 @@ dirname = os.path.dirname(__file__)
 
 def check_ip_in_lists(ip, db_connection, penalties):
     """
-    
-    Only applies the maximum penalty
-    
-    
-    """
-    
-    penalties = {'tor':penalties['tor_penalty'], 'vpn':penalties['vpn_penalty'], 'blacklist':penalties['blacklist_penalty']}
 
-    penalties = sorted(penalties.items(), key= lambda x: x[1])
-    
+    Only applies the maximum penalty
+
+
+    """
+
+    penalties = {'tor': penalties['tor_penalty'], 'vpn': penalties['vpn_penalty'], 'blacklist': penalties['blacklist_penalty']}
+
+    penalties = sorted(penalties.items(), key=lambda x: x[1])
+
     penalty_added = 0
-    
+
     for penalty_type, penalty_value in penalties:
-        
+
         if penalty_value == 0:
             continue
-        
+
         if penalty_type == 'tor':
-            if db_connection.set_exists('tor_ips',ip):
+            if db_connection.set_exists('tor_ips', ip):
                 penalty_added = penalty_value
-                
+
         elif penalty_type == 'blacklist':
-            if db_connection.set_exists('blacklist_ips',ip):
+            if db_connection.set_exists('blacklist_ips', ip):
                 penalty_added = penalty_value
-            elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:3])):
+            elif db_connection.set_exists('blacklist_ips', '.'.join(ip.split('.')[:3])):
                 penalty_added = penalty_value
-            elif db_connection.set_exists('blacklist_ips','.'.join(ip.split('.')[:2])):
+            elif db_connection.set_exists('blacklist_ips', '.'.join(ip.split('.')[:2])):
                 penalty_added = penalty_value
-                
+
         elif penalty_type == 'vpn':
-            if db_connection.set_exists('vpn_ips',ip):
+            if db_connection.set_exists('vpn_ips', ip):
                 penalty_added = penalty_value
-            elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:3])):
+            elif db_connection.set_exists('vpn_ips', '.'.join(ip.split('.')[:3])):
                 penalty_added = penalty_value
-            elif db_connection.set_exists('vpn_ips','.'.join(ip.split('.')[:2])):
+            elif db_connection.set_exists('vpn_ips', '.'.join(ip.split('.')[:2])):
                 penalty_added = penalty_value
-    
+
         if penalty_added > 0:
             break
-    
+
     return penalty_added
 
 
@@ -123,18 +123,18 @@ class DBconnector:
         else:
             raise ValueError(f"config db type has to be either sqlite or redis, was {config['db']['type']}")
 
-    def set_value(self,key, value):
+    def set_value(self, key, value):
         if self.db_type == 'sqlite':
             self.db_connection[key] = value
         elif self.db_type == 'redis':
             # anything that enters here becomes a string
-            self.db_connection.set(key, value)        
-            
+            self.db_connection.set(key, value)
+
     def get_value(self, key, value, default_return=None):
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
-            result = self.db_connection.get(key, value)        
+            result = self.db_connection.get(key, value)
             if result is None:
                 return default_return
             else:
@@ -152,7 +152,7 @@ class DBconnector:
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
-            result = self.db_connection.hgetall(key) # if this retrieves non-existent key? -> empty dict
+            result = self.db_connection.hgetall(key)  # if this retrieves non-existent key? -> empty dict
             if len(result) == 0:
                 return default_return
             else:
@@ -174,12 +174,11 @@ class DBconnector:
             # consider bring it to memory, then need a flag to check if need to renew
             return value in self.db_connection[key]
         elif self.db_type == 'redis':
-            return self.db_connection.sismember(key, value) # might want to combine into 1 lua call for ip checks?
+            return self.db_connection.sismember(key, value)  # might want to combine into 1 lua call for ip checks?
         # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
 
-
     def delete_old_keys(self, time_limit):
-        expire_time_limit = time.time() - 60*60
+        expire_time_limit = time.time() - 60 * 60
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
                 if len(token) == token_length:

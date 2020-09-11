@@ -12,7 +12,6 @@ import subprocess
 from glob import glob
 
 
-
 # sqlite
 # - no need additional service
 # - hard to move to new server
@@ -31,7 +30,7 @@ from glob import glob
 #                           can also have a separate updated_at so can check more often without actually retrieving same
 # then ip rate limiting
 
-## hmm, we don't care about "attacks", but rather, proxies? but attack might be defined as botnet
+# hmm, we don't care about "attacks", but rather, proxies? but attack might be defined as botnet
 # probably want firehol1, 2, firehol_abusers_1d, stopforumspam7d as blacklist
 
 # firehol_proxies, vpn-ipv4 as proxies
@@ -49,218 +48,213 @@ def update_tor_ips():
     update = True
     if os.path.exists('db/torbulkexitlist'):
         modified_time = os.lstat('db/torbulkexitlist').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60: # 1 day, add a minute offset so that a slight miss still gets updated
+        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day, add a minute offset so that a slight miss still gets updated
             update = False
 
     if update:
         try:
-            subprocess.check_output(['wget',tor_endpoint,'-O','db/torbulkexitlist','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', tor_endpoint, '-O', 'db/torbulkexitlist', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch tor IPs: {e}')
-            return False                    
-        
-        # update database        
+            return False
+
+        # update database
         logging.debug('Updating db for tor')
-        
-        with open(os.path.join('db','torbulkexitlist')) as f:
+
+        with open(os.path.join('db', 'torbulkexitlist')) as f:
             tor_ips = set(f.read().splitlines())
-        
-        db_connection.set_set('tor_ips',tor_ips)
+
+        db_connection.set_set('tor_ips', tor_ips)
         db_connection.set_value('tor_ips_updated', str(int(time.time())))
-        
+
         return True
-    
+
     return False
 
 
 def update_vpn_ips():
     """
-    
+
     firehol_proxies, vpn-ipv4
-    
+
     """
 
-    vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt' # for commercial & datacenter, not very updated
+    vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
     firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
     # so update once a month
     # also needs to be collated
 
     update = False
-    
+
     retrieve_vpn_ipv4 = False
     if os.path.exists('db/listed_ip_7.zip'):
         modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 * 30.5 - 60 : # 1 month
+        if time.time() - modified_time > 60 * 60 * 24 * 30.5 - 60:  # 1 month
             retrieve_vpn_ipv4 = True
     else:
         retrieve_vpn_ipv4 = True
-        
+
     if retrieve_vpn_ipv4 == True:
         try:
-            subprocess.check_output(['wget',vpn_ipv4_endpoint,'-O','db/vpn-ipv4.txt','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', vpn_ipv4_endpoint, '-O', 'db/vpn-ipv4.txt', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - vpn_ipv4_endpoint: {e}')
-            return False                
+            return False
         update = True
-        
-    
+
     retrieve_firehol_proxies = False
     if not os.path.exists('db/firehol_proxies.netset'):
         modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60 : # 1 day
+        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_firehol_proxies = True
     else:
         retrieve_firehol_proxies = True
-            
+
     if retrieve_firehol_proxies == True:
         try:
-            subprocess.check_output(['wget',firehol_proxies_endpoint,'-O','db/firehol_proxies.netset','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', firehol_proxies_endpoint, '-O', 'db/firehol_proxies.netset', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_proxies_endpoint: {e}')
-            return False                
+            return False
         update = True
-            
 
     if update:
         logging.debug('Updating db for vpn')
-        # update database        
-        with open(os.path.join('db','vpn-ipv4.txt')) as f:
+        # update database
+        with open(os.path.join('db', 'vpn-ipv4.txt')) as f:
             vpn_ipv4 = f.read().splitlines()[2:]
-        
+
         transformed_ipnets = transform_ipnet_strings(vpn_ipv4)
-        
-        with open(os.path.join('db','firehol_proxies.netset')) as f:
+
+        with open(os.path.join('db', 'firehol_proxies.netset')) as f:
             firehol_proxies = f.read().splitlines()
-            
+
         firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
-                           
+
         transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
         # Ideally, we should use ipaddress library to combine ip address ranges, but the memory usage blows up to GBs
         # Instead, we do a naive set combination, which only takes 200MB ram.
         # Efficiency loss vs ipaddress handling = (1630895 - 1497613) / 1497613 * 100 = 8.9%
-    
-        db_connection.set_set('vpn_ips',transformed_ipnets) 
-        db_connection.set_value('vpn_ips_updated', str(int(time.time())))
-        
-        return True
-    
-    return False
 
+        db_connection.set_set('vpn_ips', transformed_ipnets)
+        db_connection.set_value('vpn_ips_updated', str(int(time.time())))
+
+        return True
+
+    return False
 
 
 def update_ip_blacklists():
 
-    stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz' # set of IPs
+    stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz'  # set of IPs
     firehol_abusers_endpoint = 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
     firehol_level1_endpoint = 'https://iplists.firehol.org/files/firehol_level1.netset'
     firehol_level2_endpoint = 'https://iplists.firehol.org/files/firehol_level2.netset'
-    
-    
-    # check whether already have an updated one, in case we restart process multiple times   
-    
+
+    # check whether already have an updated one, in case we restart process multiple times
+
     retrieve_stopforumspam = False
     if not os.path.exists('db/listed_ip_7.gz'):
         modified_time = os.lstat('db/listed_ip_7.gz').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60: # 1 day
+        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_stopforumspam = True
     else:
         retrieve_stopforumspam = True
-            
+
     if retrieve_stopforumspam == True:
         try:
-            subprocess.check_output(['wget',stopforumspam_endpoint,'-O','db/listed_ip_7.gz','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', stopforumspam_endpoint, '-O', 'db/listed_ip_7.gz', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch blacklisted IPs - stopforumspam_endpoint: {e}')
-            return False                
+            return False
         update = True
-        
+
     retrieve_firehol_abusers = False
     if not os.path.exists('db/firehol_abusers_1d.netset'):
         modified_time = os.lstat('db/firehol_abusers_1d.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 2 - 60 : # 2 hour
+        if time.time() - modified_time > 60 * 60 * 2 - 60:  # 2 hour
             retrieve_firehol_abusers = True
     else:
         retrieve_firehol_abusers = True
-            
+
     if retrieve_firehol_abusers == True:
         try:
-            subprocess.check_output(['wget',firehol_abusers_endpoint,'-O','db/firehol_abusers_1d.netset','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', firehol_abusers_endpoint, '-O',
+                                     'db/firehol_abusers_1d.netset', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_abusers_endpoint: {e}')
-            return False                
+            return False
         update = True
-    
+
     retrieve_firehol_level1 = False
     if not os.path.exists('db/firehol_level1.netset'):
         modified_time = os.lstat('db/firehol_level1.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60 : # 1 day
+        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_firehol_level1 = True
     else:
         retrieve_firehol_level1 = True
-            
+
     if retrieve_firehol_level1 == True:
         try:
-            subprocess.check_output(['wget',firehol_level1_endpoint,'-O','db/firehol_level1.netset','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', firehol_level1_endpoint, '-O', 'db/firehol_level1.netset', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_level1_endpoint: {e}')
-            return False                
+            return False
         update = True
-    
+
     retrieve_firehol_level2 = False
     if not os.path.exists('db/firehol_level2.netset'):
         modified_time = os.lstat('db/firehol_level2.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 12 - 60 : # 12 hour
+        if time.time() - modified_time > 60 * 60 * 12 - 60:  # 12 hour
             retrieve_firehol_level2 = True
     else:
         retrieve_firehol_level2 = True
-            
+
     if retrieve_firehol_level2 == True:
         try:
-            subprocess.check_output(['wget',firehol_level2_endpoint,'-O','db/firehol_level2.netset','-nv'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['wget', firehol_level2_endpoint, '-O', 'db/firehol_level2.netset', '-nv'], stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f'Failed to fetch vpn IPs - firehol_level2_endpoint: {e}')
-            return False                
+            return False
         update = True
-    
+
     if update:
-        
+
         logging.debug('Updating db for blacklist')
-        
+
         with gzip.open('db/listed_ip_7.gz', 'rb') as f:
             file_content = f.read()
-    
+
         transformed_ipnets = set([i.decode('utf-8') for i in file_content.splitlines()])
-        
-        with open(os.path.join('db','firehol_abusers_1d.netset')) as f:
+
+        with open(os.path.join('db', 'firehol_abusers_1d.netset')) as f:
             firehol_abusers_1d = f.read().splitlines()
-            
+
         firehol_abusers_1d = [i for i in firehol_abusers_1d if i[0] != '#']
-                           
+
         transformed_ipnets = transform_ipnet_strings(firehol_abusers_1d, transformed_ipnets)
-        
-        with open(os.path.join('db','firehol_level1.netset')) as f:
+
+        with open(os.path.join('db', 'firehol_level1.netset')) as f:
             firehol_level1 = f.read().splitlines()
-            
+
         firehol_level1 = [i for i in firehol_level1 if i[0] != '#']
-                           
+
         transformed_ipnets = transform_ipnet_strings(firehol_level1, transformed_ipnets)
-        
-        with open(os.path.join('db','firehol_level2.netset')) as f:
+
+        with open(os.path.join('db', 'firehol_level2.netset')) as f:
             firehol_level2 = f.read().splitlines()
-            
+
         firehol_level2 = [i for i in firehol_level2 if i[0] != '#']
-                           
+
         transformed_ipnets = transform_ipnet_strings(firehol_level2, transformed_ipnets)
-        
-        db_connection.set_set('blacklist_ips',transformed_ipnets) 
+
+        db_connection.set_set('blacklist_ips', transformed_ipnets)
         db_connection.set_value('blacklist_ips_updated', str(int(time.time())))
-        
+
     return False
 
 
-
-
-def transform_ipnet_strings(ipnets, transformed_ipnets = set()):
+def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
 
     for i in ipnets:
         if '/' not in i or i.split('/')[1] == 32:
@@ -308,10 +302,9 @@ def transform_ipnet_strings(ipnets, transformed_ipnets = set()):
                 # we skip anything that would be expanded to a x.0.0.0 check, so we only need to check IPs for 3 patterns
                 # x.x.x.x, x.x.x and x.x
                 # in effect, this misses ip ranges - 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 224.0.0.0/3
-                pass            
+                pass
 
     return transformed_ipnets
-    
 
 
 def update_ip_lists():
@@ -325,7 +318,7 @@ def update_ip_lists():
 
 def clean_up_audio_challenges():
     current_time = time.time()
-    for i in glob(os.path.join('challenges','audio','*')):
+    for i in glob(os.path.join('challenges', 'audio', '*')):
         if current_time - os.lstat(i).st_mtime > 5 * 60:
             os.remove(i)
 
