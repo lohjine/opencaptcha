@@ -176,10 +176,11 @@ class DBconnector:
             # cache in memory, only check to confirm that cache is updated
             if key not in self.sets:
                 self.sets[key] = self.db_connection[key]
-                self.sets_updated[key] = self.db_connection[key+'_updated']
+                self.sets_updated[key] = int(self.db_connection[key+'_updated'])
             else:
-                if time.time() - self.sets_updated['vpn_ips'] > 60:
-                    updated_check = self.db_connection[key+'_updated']
+                # further cache for 60 seconds, reduce runtime from ~600us to ~100ns
+                if time.time() - self.sets_updated[key] > 60:
+                    updated_check = int(self.db_connection[key+'_updated'])
                     if updated_check > self.sets_updated[key]:
                         self.sets[key] = self.db_connection[key]                    
                         self.sets_updated[key] = updated_check
