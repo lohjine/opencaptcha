@@ -94,8 +94,6 @@ def requestchallenge():
     min_time = time.time() + 1
 
     try:
-        # gen a challenge according to input parameters
-        # https://github.com/desirepath41/visualCaptcha/issues/24
         if challenge_level <= 1:
             answer = 'a'
             challenge = challenge1.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)

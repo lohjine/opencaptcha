@@ -23,28 +23,12 @@ from glob import glob
 # - easy to move to new server
 # - faster?
 
-
-# do challenge
-# then ip blacklist  --  # how to get flask threads to automatically refresh their blacklists?
-#                       probably want to push to redis, then flask thread schedule to retrieve from redis
-#                           can also have a separate updated_at so can check more often without actually retrieving same
-# then ip rate limiting
-
-# hmm, we don't care about "attacks", but rather, proxies? but attack might be defined as botnet
-# probably want firehol1, 2, firehol_abusers_1d, stopforumspam7d as blacklist
-
-# firehol_proxies, vpn-ipv4 as proxies
-
-# tor as tor
-
-# http://iplists.firehol.org/
-# consider wiki
+# consider wiki block list?
 
 def update_tor_ips():
 
     tor_endpoint = 'https://check.torproject.org/torbulkexitlist'
 
-    # update once a day
     update = True
     if os.path.exists('db/torbulkexitlist'):
         modified_time = os.lstat('db/torbulkexitlist').st_mtime
@@ -81,8 +65,6 @@ def update_vpn_ips():
 
     vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
     firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
-    # so update once a month
-    # also needs to be collated
 
     update = False
 
@@ -146,12 +128,10 @@ def update_vpn_ips():
 
 def update_ip_blacklists():
 
-    stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz'  # set of IPs
+    stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz'
     firehol_abusers_endpoint = 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
     firehol_level1_endpoint = 'https://iplists.firehol.org/files/firehol_level1.netset'
     firehol_level2_endpoint = 'https://iplists.firehol.org/files/firehol_level2.netset'
-
-    # check whether already have an updated one, in case we restart process multiple times
 
     retrieve_stopforumspam = False
     if not os.path.exists('db/listed_ip_7.gz'):
@@ -328,6 +308,7 @@ def clean_up_audio_challenges():
 def generate_animal_images():
     # create a new tmp folder, populate it, then move to the correct folder, then delete if == 3 folders
 
+    # https://github.com/desirepath41/visualCaptcha/issues/24
     return True
 
 
