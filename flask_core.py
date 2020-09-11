@@ -69,17 +69,16 @@ def requestchallenge():
 
     site_key = request.form.get('site_key', None)
     blind = request.form.get('blind', None)
+    
+    if site_key is None:
+        return abort(400)
 
     # retrieve base challenge level from site settings
-    if site_key is not None:
-        site_details = db_connection.get(site_key, None)
-        if site_details is None:
-            return jsonify({'success': False, 'error': 'Invalid site key'})
-        challenge_level = int(site_details['challenge_level'])
-        site_secret = site_details['site_secret']
-    else:
-        challenge_level = int(request.form.get('challenge_level', 1))
-        site_secret = ''
+    site_details = db_connection.get(site_key, None)
+    if site_details is None:
+        return jsonify({'success': False, 'error': 'Invalid site key'})
+    challenge_level = int(site_details['challenge_level'])
+    site_secret = site_details['site_secret']
 
     challenge_id = ''.join(
         random.SystemRandom().choice(
