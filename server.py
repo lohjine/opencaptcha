@@ -85,7 +85,7 @@ def update_vpn_ips():
         update = True
 
     retrieve_firehol_proxies = False
-    if not os.path.exists('db/firehol_proxies.netset'):
+    if os.path.exists('db/firehol_proxies.netset'):
         modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
         if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_firehol_proxies = True
@@ -134,7 +134,7 @@ def update_ip_blacklists():
     firehol_level2_endpoint = 'https://iplists.firehol.org/files/firehol_level2.netset'
 
     retrieve_stopforumspam = False
-    if not os.path.exists('db/listed_ip_7.gz'):
+    if os.path.exists('db/listed_ip_7.gz'):
         modified_time = os.lstat('db/listed_ip_7.gz').st_mtime
         if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_stopforumspam = True
@@ -150,7 +150,7 @@ def update_ip_blacklists():
         update = True
 
     retrieve_firehol_abusers = False
-    if not os.path.exists('db/firehol_abusers_1d.netset'):
+    if os.path.exists('db/firehol_abusers_1d.netset'):
         modified_time = os.lstat('db/firehol_abusers_1d.netset').st_mtime
         if time.time() - modified_time > 60 * 60 * 2 - 60:  # 2 hour
             retrieve_firehol_abusers = True
@@ -167,7 +167,7 @@ def update_ip_blacklists():
         update = True
 
     retrieve_firehol_level1 = False
-    if not os.path.exists('db/firehol_level1.netset'):
+    if os.path.exists('db/firehol_level1.netset'):
         modified_time = os.lstat('db/firehol_level1.netset').st_mtime
         if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
             retrieve_firehol_level1 = True
@@ -183,7 +183,7 @@ def update_ip_blacklists():
         update = True
 
     retrieve_firehol_level2 = False
-    if not os.path.exists('db/firehol_level2.netset'):
+    if os.path.exists('db/firehol_level2.netset'):
         modified_time = os.lstat('db/firehol_level2.netset').st_mtime
         if time.time() - modified_time > 60 * 60 * 12 - 60:  # 12 hour
             retrieve_firehol_level2 = True
@@ -367,7 +367,7 @@ if __name__ == "__main__":
         print(f'Your site_secret is: {site_secret}')
 
     # write site_key and site_secret into database
-    db_connection.set(site_key, {'site_secret': site_secret,
+    db_connection.set_dict(site_key, {'site_secret': site_secret,
                                  'challenge_level': int(config['captcha']['challenge_level']),
                                  'tor_penalty': int(config['captcha']['tor_penalty']),
                                  'vpn_penalty': int(config['captcha']['vpn_penalty']),
