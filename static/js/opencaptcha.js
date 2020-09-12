@@ -84,6 +84,7 @@ function load_captcha(audio=false){
 		if (httpRequest.readyState === XMLHttpRequest.DONE) {
 		  if (httpRequest.status === 200) {
 			  
+			challengeDiv.textContent = '';
 			
 			// display the challenge				
 			var content = document.createTextNode("Load complete");
@@ -128,6 +129,9 @@ function load_captcha(audio=false){
 	httpRequest.send(params);
 	
 }
+
+// this is here so repeated attempts don't multiply this listener
+window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980
 
 function captcha_success(token){
 	

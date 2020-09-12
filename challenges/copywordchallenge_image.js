@@ -30,8 +30,6 @@ challengeDiv.appendChild(submit_challenge_btn);
 
 offer_audio()
 
-window.addEventListener('keydown',function(e){if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){if(e.target.nodeName=='INPUT'&&e.target.type=='text'&&e.target.id=='noenter'){e.preventDefault();submit_challenge();return false;}}},true); // see https://stackoverflow.com/questions/5629805/disabling-enter-key-for-form/37241980
-
 
 function submit_challenge(){
 	
