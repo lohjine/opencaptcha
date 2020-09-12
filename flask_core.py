@@ -241,11 +241,11 @@ def solvechallenge():
     if challenge_details is None:
         return jsonify({'success': False, 'error': 'Invalid challenge_id'})
 
-    if challenge_details['expires'] < time.time():
+    if int(challenge_details['expires']) < time.time():
         return jsonify({'success': False, 'error': 'Challenge expired'})
 
     try:
-        if challenge_details['min_time'] > time.time():
+        if int(challenge_details['min_time']) > time.time():
             db_connection.delete(challenge_id)
             return jsonify({'success': False, 'error': 'Wrong answer'})
 
@@ -293,7 +293,7 @@ def verify():
     if token_details is None:
         return jsonify({'success': False, 'error': 'Response token is invalid'})
 
-    if token_details['expires'] < time.time():
+    if int(token_details['expires']) < time.time():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
 # we delete tokens immediately once they are used
