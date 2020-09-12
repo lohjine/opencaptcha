@@ -86,21 +86,21 @@ def update_vpn_ips(force=False):
             return False
         update = True
 
-    retrieve_firehol_proxies = False
-    if os.path.exists('db/firehol_proxies.netset'):
-        modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
-            retrieve_firehol_proxies = True
-    else:
-        retrieve_firehol_proxies = True
-
-    if retrieve_firehol_proxies == True:
-        try:
-            urllib.request.urlretrieve(firehol_proxies_endpoint, 'db/firehol_proxies.netset')
-        except Exception as e:
-            logging.error(f'Failed to fetch vpn IPs - firehol_proxies_endpoint: {e}')
-            return False
-        update = True
+#    retrieve_firehol_proxies = False
+#    if os.path.exists('db/firehol_proxies.netset'):
+#        modified_time = os.lstat('db/firehol_proxies.netset').st_mtime
+#        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day
+#            retrieve_firehol_proxies = True
+#    else:
+#        retrieve_firehol_proxies = True
+#
+#    if retrieve_firehol_proxies == True:
+#        try:
+#            urllib.request.urlretrieve(firehol_proxies_endpoint, 'db/firehol_proxies.netset')
+#        except Exception as e:
+#            logging.error(f'Failed to fetch vpn IPs - firehol_proxies_endpoint: {e}')
+#            return False
+#        update = True
 
     if update or force:
         logging.debug('Updating db for vpn')
