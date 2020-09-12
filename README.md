@@ -92,7 +92,6 @@ python3 server.py &
 ## Todo
 
 * Implement challenges for higher difficulties (currently up to 6)
-* IP blacklisting
 * IP rate-limiting
 * More sophisticated bot detection techniques
 * Style elements to look nicer / UX
