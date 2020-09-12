@@ -36,7 +36,7 @@ def update_tor_ips(force=False):
     update = True
     if os.path.exists('db/torbulkexitlist'):
         modified_time = os.lstat('db/torbulkexitlist').st_mtime
-        if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day, add a minute offset so that a slight miss still gets updated
+        if time.time() - modified_time < 60 * 60 * 24 - 60:  # 1 day, add a minute offset so that a slight miss still gets updated
             update = False
 
     if update or force:
