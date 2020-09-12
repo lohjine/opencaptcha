@@ -14,15 +14,21 @@ dirname = os.path.dirname(__file__)
 
 def check_ip_in_lists(ip, db_connection, penalties):
     """
+    Does an optimized ip lookup with the db_connection. Applies only the maximum penalty.
 
-    Only applies the maximum penalty
+    Args:
+        ip (str): ip string
+        db_connection (DBconnector obj)
+        penalties (dict): Contains tor_penalty, vpn_penalty, blacklist_penalty keys with integer values
 
-
+    Returns:
+        :int: penalty_added
     """
 
     penalties = {'tor': penalties['tor_penalty'], 'vpn': penalties['vpn_penalty'], 'blacklist': penalties['blacklist_penalty']}
 
     penalties = sorted(penalties.items(), key=lambda x: x[1])
+    # sort by penalty value to check in that order and perform early stopping
 
     penalty_added = 0
 

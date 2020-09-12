@@ -62,9 +62,7 @@ def update_tor_ips(force=False):
 
 def update_vpn_ips(force=False):
     """
-
     firehol_proxies, vpn-ipv4
-
     """
 
     vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
@@ -238,6 +236,22 @@ def update_ip_blacklists(force=False):
 
 
 def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
+    """
+    Converts list of ipnet strings (x.x.x.x/x) to a set of transformed ipnet strings that fulfils criteria:
+        - /25 to /32 are expanded to /32 equivalents
+        - /17 to /24 are expanded to /24 equivalents
+        - /9 to /16 are expanded to /16 equivalents
+        - /8 and below are dropped
+
+    Assumes subnetmask-less strings to be /32
+
+    Args:
+        ipnets (list): list of ipnet strings
+        transformed_ipnets (set): set to add to
+
+    Returns:
+        :set: of ipnet strings
+    """
 
     for i in ipnets:
         if '/' not in i or i.split('/')[1] == 32:
