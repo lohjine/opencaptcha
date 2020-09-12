@@ -29,8 +29,6 @@ opencaptchajs = opencaptchajs.replace('{{SITE_URL}}', site_url)
 
 db_connection = DBconnector()
 
-engine = pyttsx3.init()
-engine.setProperty('rate', 145)
 
 with open(os.path.join(dirname, 'challenges', 'waitchallenge.js'), 'r') as f:
     challenge1 = f.read()
@@ -141,10 +139,11 @@ def requestchallenge():
                 diskpath = os.path.join(dirname, 'challenges', 'audio', filename)
                 webpath = 'challenges/audio/' + filename
 
+                engine = pyttsx3.init() # not possible to hold this object for multiple threads in prod
+                engine.setProperty('rate', 100)
                 engine.save_to_file(f'What is {a} plus {b}', diskpath)
                 engine.runAndWait()
-                # pyttsx3 only allows saving to disk, we can fork the library if perf is an issue
-                # NVM person might want to retrieve it again?!, or this is the best way to present the flow
+                del engine
 
                 challenge = challenge.replace('{{AUDIO}}', webpath)
 
