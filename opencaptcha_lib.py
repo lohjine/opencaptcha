@@ -132,11 +132,11 @@ class DBconnector:
             # anything that enters here becomes a string
             self.db_connection.set(key, value)
 
-    def get_value(self, key, value, default_return=None):
+    def get_value(self, key, default_return=None):
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
-            result = self.db_connection.get(key, value)
+            result = self.db_connection.get(key)
             if result is None:
                 return default_return
             else:
@@ -192,12 +192,12 @@ class DBconnector:
             return self.db_connection.sismember(key, value)  # might want to combine into 1 lua call for ip checks?
         # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
 
-    def delete_old_keys(self, time_limit):
-        expire_time_limit = time.time() - 60 * 60
+    def delete_old_keys(self, time_limit=60*60):
+        expire_time_limit = time.time() - time_limit
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
-                if len(token) == token_length:
-                    if token_details['expires'] > expire_time_limit:
+                if isinstance(token_details, dict) and len(token) == token_length:
+                    if token_details['expires'] < expire_time_limit:
                         del self.db_connection[token]
         elif self.db_type == 'redis':
             # we set keys to be expired by redis automatically
@@ -205,6 +205,10 @@ class DBconnector:
 
     def delete(self, key):
         if self.db_type == 'sqlite':
-            del self.db_connection[key]
+            if key in self.db_connection:
+                del self.db_connection[key]
         elif self.db_type == 'redis':
             self.db_connection.delete(key)
+
+    def close(self):
+        self.db_connection.close()

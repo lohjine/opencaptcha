@@ -28,7 +28,7 @@ opener = urllib.request.build_opener()
 opener.addheaders = [('User-agent', 'Wget/1.12 (linux-gnu)')] # otherwise firehol blocks us
 urllib.request.install_opener(opener)
 
-def update_tor_ips():
+def update_tor_ips(force=False):
 
     tor_endpoint = 'https://check.torproject.org/torbulkexitlist'
 
@@ -38,7 +38,7 @@ def update_tor_ips():
         if time.time() - modified_time > 60 * 60 * 24 - 60:  # 1 day, add a minute offset so that a slight miss still gets updated
             update = False
 
-    if update:
+    if update or force:
         try:
             urllib.request.urlretrieve(tor_endpoint, 'db/torbulkexitlist')
         except Exception as e:
@@ -59,7 +59,7 @@ def update_tor_ips():
     return False
 
 
-def update_vpn_ips():
+def update_vpn_ips(force=False):
     """
 
     firehol_proxies, vpn-ipv4
@@ -103,7 +103,7 @@ def update_vpn_ips():
             return False
         update = True
 
-    if update:
+    if update or force:
         logging.debug('Updating db for vpn')
         # update database
         with open(os.path.join('db', 'vpn-ipv4.txt')) as f:
@@ -129,7 +129,7 @@ def update_vpn_ips():
     return False
 
 
-def update_ip_blacklists():
+def update_ip_blacklists(force=False):
 
     stopforumspam_endpoint = 'https://www.stopforumspam.com/downloads/listed_ip_7.gz'
     firehol_abusers_endpoint = 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
@@ -200,7 +200,7 @@ def update_ip_blacklists():
             return False
         update = True
 
-    if update:
+    if update or force:
 
         logging.debug('Updating db for blacklist')
 
@@ -289,11 +289,11 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
     return transformed_ipnets
 
 
-def update_ip_lists():
+def update_ip_lists(force=False):
 
-    update_ip_blacklists()
-    update_tor_ips()
-    update_vpn_ips()
+    update_ip_blacklists(force=force)
+    update_tor_ips(force=force)
+    update_vpn_ips(force=force)
 
     return True
 
@@ -378,6 +378,8 @@ if __name__ == "__main__":
 
     if config['db']['type'] == 'sqlite':
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
+        
+    update_ip_lists()
 
     schedule.every().hour.at(":00").do(update_ip_lists)
     schedule.every(10).minutes.do(clean_up_audio_challenges)
