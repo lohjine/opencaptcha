@@ -60,7 +60,11 @@ def opencaptcha(text):
 
 @app.route('/challenges/audio/<path:text>')
 def audio_challenge(text):
-    return send_from_directory(os.path.join(dirname, 'challenges', 'audio'), text)
+    # send_from_directory works weirdly with nested blueprints, causing the base path to be opencaptcha_website/app
+    # app.root_path is the same as dirname, except that app.root_path is absolute path
+    # both points to opencaptcha_website/app/opencaptcha
+    # absolute path fixes the weird behaviour of send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'challenges', 'audio'), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -140,7 +144,7 @@ def requestchallenge():
                 webpath = 'challenges/audio/' + filename
 
                 engine = pyttsx3.init() # not possible to hold this object for multiple threads in prod
-                engine.setProperty('rate', 100)
+                engine.setProperty('rate', 110)
                 engine.save_to_file(f'What is {a} plus {b}', diskpath)
                 engine.runAndWait()
                 del engine
@@ -315,15 +319,7 @@ def verify():
 
 @app.route('/robots.txt')
 def robots():
-    return send_from_directory(os.path.join(dirname, 'static', 'txt'), 'robots.txt')
-
-
-@app.route('/test', methods=['GET', 'POST'])
-def main():
-    if request.method == 'POST':
-        print(request.form)
-
-    return send_from_directory(os.path.join(dirname, 'static', 'js'), 'test.html')
+    return send_from_directory(os.path.join(app.root_path, 'static', 'txt'), 'robots.txt')
 
 
 if __name__ == '__main__':
