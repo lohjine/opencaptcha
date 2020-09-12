@@ -1,6 +1,6 @@
 challengeDiv.textContent = '';
 
-const content = document.createTextNode("Are you a human?");
+var content = document.createTextNode("Are you a human?");
 
 var btn = document.createElement('button');
 btn.innerHTML = "Yes";
