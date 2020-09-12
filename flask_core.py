@@ -1,12 +1,12 @@
+from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, token_length, challenge_id_length, check_ip_in_lists
+from challenges.wordlist import wordlist
 from flask import Flask, Blueprint, redirect, render_template, send_from_directory
 from flask import request, url_for, abort, make_response, jsonify
-from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, token_length, challenge_id_length, check_ip_in_lists
 import random
 import string
 import time
 import configparser
 import logging
-from challenges.wordlist import wordlist
 import os
 from PIL import Image, ImageDraw, ImageFont
 import base64
