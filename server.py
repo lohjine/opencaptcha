@@ -67,12 +67,12 @@ def update_vpn_ips(force=False):
 
     vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
     firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
-
+    
     update = False
-
+    
     retrieve_vpn_ipv4 = False
-    if os.path.exists('db/listed_ip_7.zip'):
-        modified_time = os.lstat('db/listed_ip_7.zip').st_mtime
+    if os.path.exists('db/vpn-ipv4.txt'):
+        modified_time = os.lstat('db/vpn-ipv4.txt').st_mtime
         if time.time() - modified_time > 60 * 60 * 24 * 30.5 - 60:  # 1 month
             retrieve_vpn_ipv4 = True
     else:
