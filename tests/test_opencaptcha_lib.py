@@ -24,7 +24,7 @@ class OpenCaptchaLibTest(unittest.TestCase):
         self.assertEqual(self.db.get_value('test_key'), None)
 
         self.db.set_set('test_key', set(['1', '2']))
-        self.db.set_set('test_key_updated', 1)
+        self.db.set_set('test_key_updated', set([1]))
         self.assertTrue(self.db.set_exists('test_key', '1'))
         self.assertFalse(self.db.set_exists('test_key', '3'))
         self.db.delete('test_key')
