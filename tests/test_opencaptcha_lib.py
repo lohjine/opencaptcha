@@ -19,7 +19,7 @@ class OpenCaptchaLibTest(unittest.TestCase):
         self.assertEqual(self.db.get_value('test_key'), None)
 
         self.db.set_dict('test_key', {'test_value': '1', 'test_value2': 2})
-        self.assertEqual(self.db.get_dict('test_key'), {'test_value': '1', 'test_value2': 2})
+        self.assertEqual(self.db.get_dict('test_key'), {'test_value': '1', 'test_value2': '2'})
         self.db.delete('test_key')
         self.assertEqual(self.db.get_value('test_key'), None)
 

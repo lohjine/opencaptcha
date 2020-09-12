@@ -25,7 +25,7 @@ def check_ip_in_lists(ip, db_connection, penalties):
         :int: penalty_added
     """
 
-    penalties = {'tor': penalties['tor_penalty'], 'vpn': penalties['vpn_penalty'], 'blacklist': penalties['blacklist_penalty']}
+    penalties = {'tor': int(penalties['tor_penalty']), 'vpn': int(penalties['vpn_penalty']), 'blacklist': int(penalties['blacklist_penalty'])}
 
     penalties = sorted(penalties.items(), key=lambda x: x[1])
     # sort by penalty value to check in that order and perform early stopping
@@ -172,7 +172,7 @@ class DBconnector:
         elif self.db_type == 'redis':
             p = self.db_connection.pipeline()
             p.delete(key)
-            p.sadd(key, values)
+            p.sadd(key, *values)
             p.execute()
             return True
 
