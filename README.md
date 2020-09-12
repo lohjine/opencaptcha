@@ -22,6 +22,10 @@ OpenCaptcha is an open source, user-friendly, privacy-focused captcha. Currently
 You may try out the captcha at [https://opencaptcha.lohjine.com](https://opencaptcha.lohjine.com)
 
 
+## Captcha concepts
+
+See [concepts.md](concepts.md)
+
 ## Installation (using hosted service)
 
 Current available hosted services:
