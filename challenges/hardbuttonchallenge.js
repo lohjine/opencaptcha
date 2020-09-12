@@ -27,6 +27,7 @@ challengeDiv.appendChild(btn);
 function submit_challenge(answer){
 	
 	// remove btn
+	challengeDiv.removeChild(challengeDiv.children[1])
 	challengeDiv.removeChild(challengeDiv.children[0])
 	
 	var loading = document.createElement('img');
