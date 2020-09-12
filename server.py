@@ -135,6 +135,8 @@ def update_ip_blacklists(force=False):
     firehol_level1_endpoint = 'https://iplists.firehol.org/files/firehol_level1.netset'
     firehol_level2_endpoint = 'https://iplists.firehol.org/files/firehol_level2.netset'
 
+    update = False
+
     retrieve_stopforumspam = False
     if os.path.exists('db/listed_ip_7.gz'):
         modified_time = os.lstat('db/listed_ip_7.gz').st_mtime
