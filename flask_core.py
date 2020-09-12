@@ -269,7 +269,8 @@ def solvechallenge():
                           expire=120)
 
         return jsonify({'success': True, 'token': token})
-    except BaseException:
+    except BaseException as e:
+        logging.error(e)
         return abort(500)
     finally:
         pass  # set up for ip rate limiting
