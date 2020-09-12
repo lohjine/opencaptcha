@@ -152,7 +152,7 @@ class DBconnector:
         if self.db_type == 'sqlite':
             self.db_connection[key] = value
         elif self.db_type == 'redis':
-            self.db_connection.hmset(key, value)
+            self.db_connection.hset(key, mapping=value)
             if expire:
                 self.db_connection.expire(key, expire)
 
