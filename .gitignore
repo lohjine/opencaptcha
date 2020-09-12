@@ -133,3 +133,4 @@ site_details.txt
 challenges/audio/*.mp3
 old/
 trash.py
+redis-stable/
