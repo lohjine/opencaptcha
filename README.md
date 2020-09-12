@@ -1,6 +1,6 @@
 # OpenCaptcha
 
-OpenCaptcha is an open source, user-friendly, privacy-focused captcha.
+OpenCaptcha is an open source, user-friendly, privacy-focused captcha. Currently in pre-alpha, actively developed.
 
 ## Guiding Principles
 
@@ -49,7 +49,6 @@ Current available hosted services:
 
 * response (required): OpenCaptcha response token that was submitted
 * site_secret (required): Your SITE_SECRET
-* ip (optional): IP of user who submitted the form. If provided, this will be used to assess bot activity.
 
 The endpoint will return a JSON with the following two fields:
 
@@ -84,7 +83,7 @@ pip3 install -r requirements.txt
 # Start server.py
 python3 server.py &
 
-# Serve app in flask_app.py using your web application stack
+# Serve app in flask_core.py using your web application stack
 # For a wsgi/nginx example, refer to https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uswgi-and-nginx-on-ubuntu-18-04
 
 # Proceed with step 2 of Installation section above
@@ -92,10 +91,11 @@ python3 server.py &
 
 ## Todo
 
-* Implement challenges for higher difficulties (currently up to 5)
+* Implement challenges for higher difficulties (currently up to 6)
+* IP blacklisting
 * IP rate-limiting
 * More sophisticated bot detection techniques
-* Style elements to look nicer
+* Style elements to look nicer / UX
 
 
 ## Contributing

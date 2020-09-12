@@ -11,6 +11,8 @@ btn.style.marginLeft = "15px"
 challengeDiv.appendChild(content);
 challengeDiv.appendChild(btn);		
 
+// btn on click pop up modal like recaptcha
+
 
 function submit_challenge(){
 	

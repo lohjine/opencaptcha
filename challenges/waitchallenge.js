@@ -11,7 +11,7 @@ setTimeout(function(){
 	httpRequest_challenge = new XMLHttpRequest();
 	
 	httpRequest_challenge.onreadystatechange = function alertContents() {
-		try {
+	  try {
 		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
 			challengeDiv.textContent = '';
 		  if (httpRequest_challenge.status === 200) {
@@ -22,69 +22,19 @@ setTimeout(function(){
 			
 			if (res['success']){				
 				console.log('success')
-				
-				
-				var content = document.createTextNode("Verification successful");
-				
-				var tick = document.createElement('img');
-				tick.style.verticalAlign = "middle"
-				tick.src = tick_src
-				
-				challengeDiv.appendChild(tick);				
-				challengeDiv.appendChild(content);
-				
-				// create the form with fields
-				var opencaptcha_input = document.createElement('input');
-				opencaptcha_input.type = 'hidden'
-				opencaptcha_input.name = 'opencaptcha-response'
-				opencaptcha_input.value = res['token']	
-		
-				challengeDiv.appendChild(opencaptcha_input);
-				
+				captcha_success(res['token'])
 			} else {
 				console.log('FAIL challenge')
-				
-				var cross = document.createElement('img');
-				cross.style.verticalAlign = "middle"
-				cross.src = cross_src
-				
-				var content = document.createTextNode("Verification failed");
-				
-				challengeDiv.appendChild(cross);
-				challengeDiv.appendChild(content);
-				
-				offer_reload()
+				captcha_fail()
 			}
 			
-			
 		  } else {
-			
-			var cross = document.createElement('img');
-			cross.style.verticalAlign = "middle"
-			cross.src = cross_src
-				
-			var content = document.createTextNode("Submit captcha failed: " + httpRequest_challenge.status);
-			
-			challengeDiv.appendChild(cross);
-			challengeDiv.appendChild(content);
-			
-			offer_reload()
+			captcha_submit_fail(httpRequest_challenge.status)
 		  }
 		}
 	  }
 	  catch( e ) {
-		  
-		var cross = document.createElement('img');
-		cross.style.verticalAlign = "middle"
-		cross.src = cross_src
-				
-		challengeDiv.textContent = '';
-		var content = document.createTextNode("Submit captcha failed, exception: " + e);
-		
-		challengeDiv.appendChild(cross);
-		challengeDiv.appendChild(content);
-		
-		offer_reload()
+		captcha_submit_fail(' exception, ' + e)
 	  }
 	}
 	
@@ -93,7 +43,6 @@ setTimeout(function(){
 	httpRequest_challenge.open('POST', '{{SITE_URL}}/solve', true);
 	httpRequest_challenge.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 	httpRequest_challenge.send(params);
-	
 	
 	// set another timeout for 3 seconds, if still not ready, show connection issue
 	// and offer to reload

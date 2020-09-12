@@ -1,5 +1,6 @@
 flask
 redis
 sqlitedict
-pendulum
 schedule
+pillow
+pyttsx3==2.90

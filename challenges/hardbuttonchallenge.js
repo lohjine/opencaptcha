@@ -5,14 +5,26 @@ const content = document.createTextNode("Are you a human?");
 var btn = document.createElement('button');
 btn.innerHTML = "Yes";
 btn.type = "button"
-btn.setAttribute("onClick","javascript: submit_challenge();")
+btn.setAttribute("onClick","javascript: submit_challenge('{{RIGHT}}');")
 btn.style.marginLeft = "15px"
 		
+var btn2 = document.createElement('button');
+btn2.innerHTML = "No";
+btn2.type = "button"
+btn2.setAttribute("onClick","javascript: submit_challenge('{{WRONG}}');")
+btn2.style.marginLeft = "15px"
+
 challengeDiv.appendChild(content);
-challengeDiv.appendChild(btn);		
+if (Math.random() > 0.5){
+challengeDiv.appendChild(btn);
+challengeDiv.appendChild(btn2);
+} else {
+challengeDiv.appendChild(btn2);
+challengeDiv.appendChild(btn);
+}		
 
 
-function submit_challenge(){
+function submit_challenge(answer){
 	
 	// remove btn
 	challengeDiv.removeChild(challengeDiv.children[0])
@@ -40,9 +52,12 @@ function submit_challenge(){
 			if (res['success']){				
 				console.log('success')
 				
+				
 				captcha_success(token)
 				
+				
 			} else {
+				
 				captcha_fail()
 			}
 			
@@ -58,7 +73,7 @@ function submit_challenge(){
 	  }
 	}
 	
-	var params = 'challenge_id={{CHALLENGE_ID}}&answer=a';
+	var params = 'challenge_id={{CHALLENGE_ID}}&answer=' + answer;
 
 	httpRequest_challenge.open('POST', '{{SITE_URL}}/solve', true);
 	httpRequest_challenge.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");

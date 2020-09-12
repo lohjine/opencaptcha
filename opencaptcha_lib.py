@@ -1,8 +1,8 @@
 import configparser
 import logging
-import pendulum
 import os
 from ipaddress import ip_network, ip_address
+import time
 
 token_length = 11
 site_key_length = 10
@@ -12,9 +12,55 @@ challenge_id_length = 8
 dirname = os.path.dirname(__file__)
 
 
-def check_ip_in_blacklists():
+def check_ip_in_lists(ip, db_connection, penalties):
+    """
+    Does an optimized ip lookup with the db_connection. Applies only the maximum penalty.
 
-    pass
+    Args:
+        ip (str): ip string
+        db_connection (DBconnector obj)
+        penalties (dict): Contains tor_penalty, vpn_penalty, blacklist_penalty keys with integer values
+
+    Returns:
+        :int: penalty_added
+    """
+
+    penalties = {'tor': penalties['tor_penalty'], 'vpn': penalties['vpn_penalty'], 'blacklist': penalties['blacklist_penalty']}
+
+    penalties = sorted(penalties.items(), key=lambda x: x[1])
+    # sort by penalty value to check in that order and perform early stopping
+
+    penalty_added = 0
+
+    for penalty_type, penalty_value in penalties:
+
+        if penalty_value == 0:
+            continue
+
+        if penalty_type == 'tor':
+            if db_connection.set_exists('tor_ips', ip):
+                penalty_added = penalty_value
+
+        elif penalty_type == 'blacklist':
+            if db_connection.set_exists('blacklist_ips', ip):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('blacklist_ips', '.'.join(ip.split('.')[:3])):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('blacklist_ips', '.'.join(ip.split('.')[:2])):
+                penalty_added = penalty_value
+
+        elif penalty_type == 'vpn':
+            if db_connection.set_exists('vpn_ips', ip):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('vpn_ips', '.'.join(ip.split('.')[:3])):
+                penalty_added = penalty_value
+            elif db_connection.set_exists('vpn_ips', '.'.join(ip.split('.')[:2])):
+                penalty_added = penalty_value
+
+        if penalty_added > 0:
+            break
+
+    return penalty_added
 
 
 def validate_settings_ini():
@@ -67,6 +113,8 @@ class DBconnector:
         if self.db_type == 'sqlite':
             from sqlitedict import SqliteDict
             self.db_connection = SqliteDict(os.path.join(dirname, 'db/keyvalue.db'), autocommit=True, tablename='keyvalue')
+            self.sets = {}
+            self.sets_updated = {}
         elif self.db_type == 'redis':
             import redis
             redis_ip = config['redis']['ip']
@@ -83,7 +131,24 @@ class DBconnector:
         else:
             raise ValueError(f"config db type has to be either sqlite or redis, was {config['db']['type']}")
 
-    def set(self, key, value, expire=None):
+    def set_value(self, key, value):
+        if self.db_type == 'sqlite':
+            self.db_connection[key] = value
+        elif self.db_type == 'redis':
+            # anything that enters here becomes a string
+            self.db_connection.set(key, value)
+
+    def get_value(self, key, default_return=None):
+        if self.db_type == 'sqlite':
+            return self.db_connection.get(key, default_return)
+        elif self.db_type == 'redis':
+            result = self.db_connection.get(key)
+            if result is None:
+                return default_return
+            else:
+                return result
+
+    def set_dict(self, key, value, expire=None):
         if self.db_type == 'sqlite':
             self.db_connection[key] = value
         elif self.db_type == 'redis':
@@ -91,23 +156,54 @@ class DBconnector:
             if expire:
                 self.db_connection.expire(key, expire)
 
-    def get(self, key, default_return=None):
+    def get_dict(self, key, default_return=None):
         if self.db_type == 'sqlite':
             return self.db_connection.get(key, default_return)
         elif self.db_type == 'redis':
-            # different methods for different data types, we only store dicts so this is fine
-            result = self.db_connection.hgetall(key)
+            result = self.db_connection.hgetall(key)  # if this retrieves non-existent key? -> empty dict
             if len(result) == 0:
                 return default_return
             else:
                 return result
 
-    def delete_old_keys(self, time_limit):
-        expire_time_limit = pendulum.now().add(hours=-1)
+    def set_set(self, key, values):
+        if self.db_type == 'sqlite':
+            self.db_connection[key] = values
+        elif self.db_type == 'redis':
+            p = self.db_connection.pipeline()
+            p.delete(key)
+            p.sadd(key, values)
+            p.execute()
+            return True
+
+    def set_exists(self, key, value):
+        if self.db_type == 'sqlite':
+            # really poor perf if keep retrieving from disk to check
+            # cache in memory, only check to confirm that cache is updated
+            if key not in self.sets:
+                self.sets[key] = self.db_connection[key]
+                self.sets_updated[key] = int(self.db_connection[key + '_updated'])
+            else:
+                # further cache for 60 seconds, reduce runtime from ~600us to ~100ns
+                if time.time() - self.sets_updated[key] > 60:
+                    updated_check = int(self.db_connection[key + '_updated'])
+                    if updated_check > self.sets_updated[key]:
+                        self.sets[key] = self.db_connection[key]
+                        self.sets_updated[key] = updated_check
+                    else:
+                        self.sets_updated[key] = time.time() - 5
+
+            return value in self.sets[key]
+        elif self.db_type == 'redis':
+            return self.db_connection.sismember(key, value)  # might want to combine into 1 lua call for ip checks?
+        # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
+
+    def delete_old_keys(self, time_limit=60 * 60):
+        expire_time_limit = time.time() - time_limit
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
-                if len(token) == token_length:
-                    if pendulum.from_format(token_details['expires'], 'YYYY-MM-DDTHH:mm:ssZZ') > expire_time_limit:
+                if isinstance(token_details, dict) and len(token) == token_length:
+                    if token_details['expires'] < expire_time_limit:
                         del self.db_connection[token]
         elif self.db_type == 'redis':
             # we set keys to be expired by redis automatically
@@ -115,6 +211,10 @@ class DBconnector:
 
     def delete(self, key):
         if self.db_type == 'sqlite':
-            del self.db_connection[key]
+            if key in self.db_connection:
+                del self.db_connection[key]
         elif self.db_type == 'redis':
             self.db_connection.delete(key)
+
+    def close(self):
+        self.db_connection.close()
