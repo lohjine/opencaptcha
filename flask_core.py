@@ -214,7 +214,7 @@ def requestchallenge():
         elif challenge_level >= 10:
             pass
         # record challenge to db
-        db_connection.set(challenge_id, {'site_secret': site_secret,
+        db_connection.set_dict(challenge_id, {'site_secret': site_secret,
                                          'expires': int(time.time()) + 5 * 60,
                                          'ip': request.remote_addr,
                                          'answer': answer,
@@ -263,7 +263,7 @@ def solvechallenge():
                 string.digits) for _ in range(token_length))
 
         db_connection.delete(challenge_id)
-        db_connection.set(token, {'site_secret': site_secret,
+        db_connection.set_dict(token, {'site_secret': site_secret,
                                   'expires': int(time.time()) + 60 * 2,
                                   'ip': request.remote_addr},
                           expire=120)
