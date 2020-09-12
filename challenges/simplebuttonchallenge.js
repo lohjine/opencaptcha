@@ -40,7 +40,7 @@ function submit_challenge(){
 			if (res['success']){				
 				console.log('success')
 				
-				captcha_success(token)
+				captcha_success(res['token'])
 				
 			} else {
 				captcha_fail()

@@ -52,8 +52,7 @@ function submit_challenge(answer){
 			if (res['success']){				
 				console.log('success')
 				
-				
-				captcha_success(token)
+				captcha_success(res['token'])
 				
 				
 			} else {
