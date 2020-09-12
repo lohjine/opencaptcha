@@ -25,8 +25,9 @@ import urllib.request
 
 
 opener = urllib.request.build_opener()
-opener.addheaders = [('User-agent', 'Wget/1.12 (linux-gnu)')] # otherwise firehol blocks us
+opener.addheaders = [('User-agent', 'Wget/1.12 (linux-gnu)')]  # otherwise firehol blocks us
 urllib.request.install_opener(opener)
+
 
 def update_tor_ips(force=False):
 
@@ -370,15 +371,15 @@ if __name__ == "__main__":
 
     # write site_key and site_secret into database
     db_connection.set_dict(site_key, {'site_secret': site_secret,
-                                 'challenge_level': int(config['captcha']['challenge_level']),
-                                 'tor_penalty': int(config['captcha']['tor_penalty']),
-                                 'vpn_penalty': int(config['captcha']['vpn_penalty']),
-                                 'ip_blacklist_penalty': int(config['captcha']['ip_blacklist_penalty'])
-                                 })
+                                      'challenge_level': int(config['captcha']['challenge_level']),
+                                      'tor_penalty': int(config['captcha']['tor_penalty']),
+                                      'vpn_penalty': int(config['captcha']['vpn_penalty']),
+                                      'ip_blacklist_penalty': int(config['captcha']['ip_blacklist_penalty'])
+                                      })
 
     if config['db']['type'] == 'sqlite':
         schedule.every().hour.at(":00").do(db_connection.delete_old_keys)
-        
+
     update_ip_lists()
 
     schedule.every().hour.at(":00").do(update_ip_lists)

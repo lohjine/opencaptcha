@@ -176,23 +176,23 @@ class DBconnector:
             # cache in memory, only check to confirm that cache is updated
             if key not in self.sets:
                 self.sets[key] = self.db_connection[key]
-                self.sets_updated[key] = int(self.db_connection[key+'_updated'])
+                self.sets_updated[key] = int(self.db_connection[key + '_updated'])
             else:
                 # further cache for 60 seconds, reduce runtime from ~600us to ~100ns
                 if time.time() - self.sets_updated[key] > 60:
-                    updated_check = int(self.db_connection[key+'_updated'])
+                    updated_check = int(self.db_connection[key + '_updated'])
                     if updated_check > self.sets_updated[key]:
-                        self.sets[key] = self.db_connection[key]                    
+                        self.sets[key] = self.db_connection[key]
                         self.sets_updated[key] = updated_check
-                    else:               
+                    else:
                         self.sets_updated[key] = time.time() - 5
-                        
+
             return value in self.sets[key]
         elif self.db_type == 'redis':
             return self.db_connection.sismember(key, value)  # might want to combine into 1 lua call for ip checks?
         # see https://stackoverflow.com/questions/31788068/redis-alternative-to-check-existence-of-multiple-values-in-a-set
 
-    def delete_old_keys(self, time_limit=60*60):
+    def delete_old_keys(self, time_limit=60 * 60):
         expire_time_limit = time.time() - time_limit
         if self.db_type == 'sqlite':
             for token, token_details in self.db_connection.iteritems():
