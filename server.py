@@ -110,12 +110,12 @@ def update_vpn_ips(force=False):
 
         transformed_ipnets = transform_ipnet_strings(vpn_ipv4)
 
-        with open(os.path.join('db', 'firehol_proxies.netset')) as f:
-            firehol_proxies = f.read().splitlines()
+#        with open(os.path.join('db', 'firehol_proxies.netset')) as f:
+#            firehol_proxies = f.read().splitlines()
+#
+#        firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
 
-        firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
-
-        transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
+#        transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
         # Ideally, we should use ipaddress library to combine ip address ranges, but the memory usage blows up to GBs
         # Instead, we do a naive set combination, which only takes 200MB ram.
         # Efficiency loss vs ipaddress handling = (1630895 - 1497613) / 1497613 * 100 = 8.9%
