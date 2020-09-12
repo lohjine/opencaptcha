@@ -48,6 +48,10 @@ function offer_reload(){
 	// or just shift up
 	linkCap.style.display = "none"
 	reload_btn.style.display = "block";
+	
+	if (logoDiv.childElementCount > 2){
+		logoDiv.removeChild(logoDiv.children[2]) 
+	}
 }
 
 function offer_audio(){
