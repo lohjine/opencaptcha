@@ -42,6 +42,8 @@ function submit_challenge(answer){
 		try {
 		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
 			
+			clearTimeout(connection_issue_timeout)
+			
 			challengeDiv.textContent = '';
 				
 		  if (httpRequest_challenge.status === 200) {
@@ -83,12 +85,6 @@ function submit_challenge(answer){
 	// set another timeout for 3 seconds, if still not ready, show connection issue
 	// and offer to reload
 	
-	setTimeout(function(){
-		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
-			
-		} else {
-			offer_reload()
-		}
-	}, 3000);
+	connection_issue_timeout_func()
 	
 }

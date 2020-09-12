@@ -14,6 +14,8 @@ setTimeout(function(){
 	  try {
 		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
 			challengeDiv.textContent = '';
+			clearTimeout(connection_issue_timeout)
+			
 		  if (httpRequest_challenge.status === 200) {
 			  
 			console.log(httpRequest_challenge.responseText);			
@@ -47,12 +49,6 @@ setTimeout(function(){
 	// set another timeout for 3 seconds, if still not ready, show connection issue
 	// and offer to reload
 	
-	setTimeout(function(){
-		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
-			
-		} else {
-			offer_reload()
-		}
-	}, 3000);
+	connection_issue_timeout_func()
 	
 }, 1000);

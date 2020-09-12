@@ -1,6 +1,17 @@
 // get the div 
 q = document.getElementsByClassName('opencaptcha')[0]
-sitekey = q.attributes['data-sitekey'].value
+const sitekey = q.attributes['data-sitekey'].value
+var connection_issue_timeout;
+
+function connection_issue_timeout_func(){
+	connection_issue_timeout = setTimeout(function(){
+		if (httpRequest_challenge.readyState === XMLHttpRequest.DONE) {
+			
+		} else {
+			offer_reload()
+		}
+	}, 3000);
+}
 
 // edit style
 q.style.width = "300px"
