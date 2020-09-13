@@ -93,7 +93,7 @@ def requestchallenge():
 
     challenge_level += penalty_added
 
-    min_time = time.time() + 1
+    min_time = time.time() + 1;challenge_level=6
 
     try:
         if challenge_level <= 1:
@@ -320,6 +320,14 @@ def verify():
 @app.route('/robots.txt')
 def robots():
     return send_from_directory(os.path.join(app.root_path, 'static', 'txt'), 'robots.txt')
+
+
+@app.route('/test', methods=['GET', 'POST'])
+def main():
+    if request.method == 'POST':
+        print(request.form)
+
+    return send_from_directory(os.path.join(app.root_path, 'static', 'js'), 'test.html')
 
 
 if __name__ == '__main__':
