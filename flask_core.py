@@ -203,7 +203,7 @@ def requestchallenge():
                 images = []
                 for i in range(10):
                     if i in answer:
-                        images.append(random.sample(latest_folders[correct_animal], 1))
+                        images.append(random.sample(latest_folders[correct_animal], 1)) # may double select...?
                     else:
                         wrong_animal = random.choice(wrong_animals)
                         images.append(random.sample(latest_folders[wrong_animal], 1))
