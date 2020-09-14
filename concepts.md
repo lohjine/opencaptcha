@@ -99,6 +99,10 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 ## Level 8-10: (TODO)
 
+
+
+or visual illusions lol, which central circle looks smaller. hard for machines to replicate the same mistake as humans?
+
 # Anti-bot techniques common to all CAPTCHA levels
 
 * A minimum solve time is applied as a form of rate-limiting
