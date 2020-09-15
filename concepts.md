@@ -97,11 +97,29 @@ When the bot has access to a GPU to run a neural network model to identify the a
 
 For animal sounds, the only available model I can find is [this](https://lis-unicamp.github.io/current-projects/wasis/). Otherwise a neural network approach or Shazam-like method could work.
 
-## Level 8-10: (TODO)
+## Level 8
+
+### Description
+
+The challenge involves wordplay, puns and jokes which require a semantic-level understanding of the language. (how to generate tho??) -- also too difficult for humans/ESL?
+
+This will also kill captcha solvers over time.
+
+take inspiration from 'things that humans do naturally that computers find it hard to do'
+- movement, vision, navigation, fine-grained movement, comedy
+
+
+- drag to the correct spots based on functions / categorize similar things together / ?
+
+but is it even feasible to test something beyond visual on a computer interface?
+
+## Level 9-10: (TODO)
 
 
 
 or visual illusions lol, which central circle looks smaller. hard for machines to replicate the same mistake as humans?
+danger is easily hard-coded against
+- this is easier for humans, but how to make more options for harder bruteforce?
 
 # Anti-bot techniques common to all CAPTCHA levels
 
