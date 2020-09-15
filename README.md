@@ -105,4 +105,4 @@ python3 server.py &
 
 We welcome discussions/feedback on the usefulness of current challenges and suggestions for improvements or more challenges. Please open an issue for it.
 
-If you maintain a website with sizable traffic and are willing to live-test dev changes, please do reach out!
+If you maintain a website with sizable traffic and are willing to test dev changes, please do reach out!
