@@ -33,7 +33,7 @@ Current available hosted services:
 
 1. Register at hosted service to obtain a SITE-KEY and SITE_SECRET, as well as configure settings.
 
-2. Add the two following elements to the page that you want to protect (e.g. account creation)
+2. Add the following two elements to the page/form that you want to protect (e.g. account creation)
 
 ```
 <head>
