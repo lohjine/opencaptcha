@@ -71,7 +71,7 @@ cd opencaptcha
 vim settings.ini
 vim redis.conf
 
-# (Recommended) Set up python virtualenv and activate it
+# (Optional, Recommended) Set up python virtualenv and activate it
 pip3 install virtualenv && virtualenv venv
 source venv/bin/activate
 
@@ -89,6 +89,8 @@ python3 server.py &
 
 # Serve app in flask_core.py using your web application stack
 # For a wsgi/nginx example, refer to https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uswgi-and-nginx-on-ubuntu-18-04
+# Or in dev mode, run:
+# python3 flask_core.py
 
 # Proceed with step 2 of Installation section above
 ```
@@ -103,6 +105,6 @@ python3 server.py &
 
 ## Contributing
 
-We welcome discussions/feedback on the usefulness of current challenges and suggestions for improvements or more challenges. Please open an issue for it.
+Discussions/feedback on the usefulness of current challenges and suggestions for improvements or more challenges are welcomed. Please open an issue for it.
 
-If you maintain a website with sizable traffic and are willing to test dev changes, please do reach out!
+If you maintain a website with sizable bot traffic and are willing to test dev changes, please do reach out!
