@@ -6,6 +6,7 @@ import random
 import shutil
 import hashlib
 import logging
+from PIL import Image
 
 #
 
@@ -90,6 +91,9 @@ for toml_file in toml_files:
     for i in range(int(video_details['duration'])):
 
         frame = random.randint(1, video_details['videofps']) + i*video_details['videofps']
+
+        # if bb not negative or too near edge, accept the frame
+
         frame_to_process.append(frame)
         frame_details.append({'framenumber':frame})
 
@@ -114,17 +118,95 @@ for idx, jpeg_file in enumerate(jpeg_files):
             continue
 
         # do the image modifications
+        ## crop a random amount
+        ## pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
+        ## change lighting level
+        ## add a light tint
 
         # write a file with the hash as the filename
-        filename = hashlib.sha256()
+        filename = hashlib.sha256(imagefile)
 
-
+        # remove the original image
         os.remove(jpeg_file)
 
         # log hash -> details
         logging.debug(f"{filename} - {video_details['filename']} , {frame_details[idx]['framenumber']}")
 
         previous_frame_hash = current_frame_hash
+
+        # save the image.
+        im.save(jpeg_file)
+
+
+
+
+### cropping an image
+# target amount that subject bounding box is 40%-60% of overall picture
+
+target_dimension = (125,125)
+subject_percentage = (0.4, 0.6) # of each dimension. # must test
+
+# subject has to shrink down to subject_percentage*target_dimension
+# use the maximum dimension
+# calculate real size
+
+randomized_subject_percentage = random.randint(int(subject_percentage[0]*100), int(subject_percentage[1]*100)) / 100
+
+
+subject_size_x = video_details['bb'][idx][0][1] - video_details['bb'][idx][0][0]
+subject_size_y = video_details['bb'][idx][1][1] - video_details['bb'][idx][1][0]
+
+if subject_size_x > subject_size_y:
+    subject_abs_size = randomized_subject_percentage * target_dimension[0]
+    resized_percentage = subject_size_x / subject_abs_size
+else:
+    subject_abs_size = randomized_subject_percentage * target_dimension[1]
+    resized_percentage = subject_size_y / subject_abs_size
+
+# vary the l/r crop %
+    # KISS and focus on objective
+    # cropping should alr destroy color layout descriptor
+    # don't bother with background stuff
+crop_lr_ratio = random.randint(0,100) / 100
+# but we need to constrain by the available image as well...
+
+x_start =
+
+crop_x = video_details['resolution'][0]
+
+
+crop_down =
+crop_up =
+crop_left =
+crop_right =
+
+
+im = im.crop((left, upper, right, lower))
+
+
+im = im.resize((width, height)) # must maintain aspect latio
+
+
+if random.random() > 0.5:
+    im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+
+
+## lighting level, do after cropping because slow
+im2 = im.convert('HSV')
+
+pixels = im2.load()
+
+for i in range(im.size[0]): # for every pixel: # TO DO TEST AGAINST GOOGLE (with some cropping)
+    for j in range(im.size[1]):
+        if pixels[i,j][2] < 50:
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 30)
+        elif pixels[i,j][2] < 100:
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 20)
+        elif pixels[i,j][2] < 200:
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 10)
+im2.show()
+
+# just save as is
 
 
 # now move the files elsewhere

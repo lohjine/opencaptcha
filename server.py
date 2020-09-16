@@ -66,10 +66,10 @@ def update_vpn_ips(force=False):
     """
 
     vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
-    firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
-    
+#    firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset' # too many IPs, requires >1GB ram on server
+
     update = False
-    
+
     retrieve_vpn_ipv4 = False
     if os.path.exists('db/vpn-ipv4.txt'):
         modified_time = os.lstat('db/vpn-ipv4.txt').st_mtime
@@ -116,9 +116,7 @@ def update_vpn_ips(force=False):
 #        firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
 
 #        transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
-        # Ideally, we should use ipaddress library to combine ip address ranges, but the memory usage blows up to GBs
-        # Instead, we do a naive set combination, which only takes 200MB ram.
-        # Efficiency loss vs ipaddress handling = (1630895 - 1497613) / 1497613 * 100 = 8.9%
+
 
         db_connection.set_set('vpn_ips', transformed_ipnets)
         db_connection.set_value('vpn_ips_updated', str(int(time.time())))
@@ -239,6 +237,13 @@ def update_ip_blacklists(force=False):
 
 def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
     """
+    Creates a set of ip strings for ip-checking purposes.
+
+    # Ideally, we should use ipaddress library to combine overlapping ip address ranges from multiple sources,
+    # but the memory usage blows up to GBs
+    # Instead, we do a naive set combination, which only takes 200MB ram.
+    # Efficiency loss vs ipaddress handling for vpn_ips examples = (1630895 - 1497613) / 1497613 * 100 = 8.9%
+
     Converts list of ipnet strings (x.x.x.x/x) to a set of transformed ipnet strings that fulfils criteria:
         - /25 to /32 are expanded to /32 equivalents
         - /17 to /24 are expanded to /24 equivalents
@@ -246,6 +251,7 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
         - /8 and below are dropped
 
     Assumes subnetmask-less strings to be /32
+
 
     Args:
         ipnets (list): list of ipnet strings
@@ -316,6 +322,7 @@ def update_ip_lists(force=False):
 
 
 def clean_up_audio_challenges():
+    """Deletes audio challenges that are more than 5 minutes old."""
     current_time = time.time()
     for i in glob(os.path.join('challenges', 'audio', '*')):
         if current_time - os.lstat(i).st_mtime > 5 * 60:

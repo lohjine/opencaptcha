@@ -85,7 +85,7 @@ The challenge involves identifying animals in images, or animal sounds in an aud
 
 Images are taken from videos to widen the input space (a 1-min video clip at 30fps contains 1800 images). Images are also perturbed to make reverse search even harder, using principles derived from [WAIT](https://trace.moe/faq). 
 
-Audio samples are mixed with background music and noise, to make it very hard to extract the pure animal audio sample.
+For the audio challenge, audio samples are mixed with background music and noise, to make it very hard to extract the pure animal audio sample.
 
 ### Why it works
 

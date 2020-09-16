@@ -93,6 +93,9 @@ def requestchallenge():
 
     challenge_level += penalty_added
 
+    if challenge_level > config['max_challenge_level']:
+        challenge_level = config['max_challenge_level']
+
     min_time = time.time() + 1;challenge_level=6
 
     try:
@@ -210,7 +213,7 @@ def requestchallenge():
 
                 challenge.replace({{images}}, json.dumps(images))
 
-        elif challenge_level >= 8:  # assume they will do basic ML at this point
+        elif challenge_level >= 8:  # assume they will do NN-ML at this point
             pass
         elif challenge_level >= 9:
             pass
