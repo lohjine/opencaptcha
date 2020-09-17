@@ -93,7 +93,7 @@ Image classification is much harder than recognising text, and usually require a
 
 ### When it doesn't work
 
-When the bot has access to a GPU to run a neural network model to identify the animals. Alternatively, because this project is open-source and the original videos are available, a [Content-based Image Retrieval (CBIR)](https://go-talks.appspot.com/github.com/soruly/slides/whatanime.ga-2018.slide) approach can be applied.
+When the bot runs a neural network model to identify the animals. Alternatively, because this project is open-source and the original videos are available, a [Content-based Image Retrieval (CBIR)](https://go-talks.appspot.com/github.com/soruly/slides/whatanime.ga-2018.slide) approach can be applied.
 
 For animal sounds, the only available model I can find is [this](https://lis-unicamp.github.io/current-projects/wasis/). Otherwise a neural network approach or Shazam-like method could work.
 

@@ -7,6 +7,7 @@ import shutil
 import hashlib
 import logging
 from PIL import Image
+import PIL
 
 #
 
@@ -170,6 +171,9 @@ else:
 crop_lr_ratio = random.randint(0,100) / 100
 # but we need to constrain by the available image as well...
 
+# 150x150 is pretty damn small, so maybe don't overcrop
+# randomize the shorter side first, then take the other side
+
 x_start =
 
 crop_x = video_details['resolution'][0]
@@ -181,14 +185,34 @@ crop_left =
 crop_right =
 
 
+im = Image.open(r"C:\Users\loh.je\Downloads\1.jpg")
+left, upper, right, lower = 800,400,1500,1700
+
+
 im = im.crop((left, upper, right, lower))
 
+im.show()
 
-im = im.resize((width, height)) # must maintain aspect latio
+im = im.resize((100, 150)) # must maintain aspect latio
 
 
 if random.random() > 0.5:
-    im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+    im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT) # very powerful
+
+# if google is using edges or whatever, then adding random objects would be really good
+# for our use-case, adding random objects is okay!
+# what the fuck adding random objects doesn't work
+# what the fuck covering almost the whole picture doesn't work
+#
+
+# try a natural landscape picture, cropping is more effective there
+
+
+# border is worthless to google
+
+# we can see google uses overall color information as well - but identifying original image can't be using that...
+
+
 
 
 ## lighting level, do after cropping because slow
@@ -196,17 +220,50 @@ im2 = im.convert('HSV')
 
 pixels = im2.load()
 
+# seems useless
 for i in range(im.size[0]): # for every pixel: # TO DO TEST AGAINST GOOGLE (with some cropping)
+    # find the range, and random between that
+    # min to work, max to visually same
+    # actually works, but not for all images. landscape is fine, don't even need to flip ( assuming heavy resize)
+    # 50,40,10 minimum
+    # 2.1 1.8, 1.05 minimum
     for j in range(im.size[1]):
         if pixels[i,j][2] < 50:
-            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 30)
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 20 ) * 1.7 ))
         elif pixels[i,j][2] < 100:
-            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 20)
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 10) * 1.6))
         elif pixels[i,j][2] < 200:
-            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], pixels[i,j][2] + 10)
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int(pixels[i,j][2] * 1.05))
+
+
+im2.convert('RGB').save(r"C:\Users\loh.je\Downloads\2.jpg")
+## apply tint
+
+im2 = im2.convert('RGB')
+
+pixels = im2.load()
+
+# strong tint doesn't work lol
+for i in range(im.size[0]):
+    for j in range(im.size[1]):
+        pixels[i,j] = (pixels[i,j][0], pixels[i,j][1] + 50, pixels[i,j][2] + 50)
+
 im2.show()
 
+
+
+
+##
+
+
+im2.convert('RGB').save(r"C:\Users\loh.je\Downloads\2.jpg")
 # just save as is
+# we done here
+
+
+
+
+
 
 
 # now move the files elsewhere
