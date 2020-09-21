@@ -1,0 +1,27 @@
+.\darknet.exe detector test cfg/coco.data cfg/yolov4-mish-416.cfg yolov4-mish-416.weights -ext_output -dont_show -out result.json < data/train.txt
+
+
+.\darknet.exe detector test cfg/coco.data cfg/yolov4-mish-416.cfg yolov4-mish-416.weights -ext_output -dont_show -out result.json C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\1.jpg
+
+
+.\darknet.exe detector test cfg/coco.data yolov4.cfg yolov4.weights -ext_output dog.jpg
+
+
+
+
+
+.\darknet.exe detector demo cfg/coco.data cfg/yolov4-mish-416.cfg yolov4-mish-416.weights -ext_output -dont_show -out result.json C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\2.mp4 
+
+= no actual output wtf
+
+= just do video and  > to a file and parse that easier
+
+
+.\darknet.exe detector demo cfg/coco.data cfg/yolov4-mish-416.cfg yolov4-mish-416.weights -ext_output -dont_show -out result.json C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\3.mp4 > test_res.txt
+
+
+= -i 1 DOESN'T WORK FUCK OFF
+
+
+= image
+.\darknet.exe detector test cfg/coco.data cfg/yolov4-mish-416.cfg yolov4-mish-416.weights

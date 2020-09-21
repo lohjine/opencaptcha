@@ -134,8 +134,8 @@ danger is easily hard-coded against
 
 hmm changing hue works, but won't computers be able to identify it? have to test myself by training a neural network to defeat it
 -- does it really work though, use darknet and see the % pred of dog whether drop completely or what. cant do online
--- if darknet cant do it, then train something to do it - use https://docs.fast.ai/tutorial.vision, but this means i have to write the code to gen the image anyway fuck.
----- run first to make sure it works normally, then write my code
+-- if darknet cant do it CONFIRM CANT ALL STILL DOG, then train something to do it - use https://docs.fast.ai/tutorial.vision, but this means i have to write the code to gen the image anyway fuck.
+---- run first to make sure it works normally DO AT WORK, then write my code
 ---- +-60 out of +-180 (16% shift) ~= 42/256
 -- if accuracy not more than 1%, then good to go
 
