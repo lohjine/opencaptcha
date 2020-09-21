@@ -95,6 +95,8 @@ Image classification is much harder than recognising text, and usually require a
 
 When the bot runs a neural network model to identify the animals. Alternatively, because this project is open-source and the original videos are available, a [Content-based Image Retrieval (CBIR)](https://go-talks.appspot.com/github.com/soruly/slides/whatanime.ga-2018.slide) approach can be applied.
 
+A custom neural network model can be trained to predict
+
 For animal sounds, the only available model I can find is [this](https://lis-unicamp.github.io/current-projects/wasis/). Otherwise a neural network approach or Shazam-like method could work.
 
 ## Level 8
@@ -129,6 +131,7 @@ hmm changing hue works, but won't computers be able to identify it? have to test
 ---- +-60 out of +-180 (16% shift) ~= 42/256
 -- if accuracy not more than 1%, then good to go
 
+--https://news.ycombinator.com/item?id=24271979 this guy, but doesn't work against this because multiple base images
 
 - from the rotate captcha paper
 -- dont have faces or humans
@@ -153,6 +156,10 @@ cumu, x2
 
 -- hence, 9c3, x2
 
+- good paper http://www.cs.columbia.edu/~polakis/papers/sivakorn_eurosp16.pdf
+- 40-60% accuracy to break recaptchav2, but solvers still do manual
+- is it because they require ~90+% accuracy??
+- maybe our focus should be on breaking manual solving
 
 # Anti-bot techniques common to all CAPTCHA levels
 
