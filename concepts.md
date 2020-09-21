@@ -121,6 +121,25 @@ or visual illusions lol, which central circle looks smaller. hard for machines t
 danger is easily hard-coded against
 - this is easier for humans, but how to make more options for harder bruteforce?
 
+
+hmm changing hue works, but won't computers be able to identify it? have to test myself by training a neural network to defeat it
+-- does it really work though, use darknet and see the % pred. cant do online
+
+
+- from the rotate captcha paper
+-- dont have faces or humans
+-- preferably no sky, grass, sand
+
+- probably don't want arbitary colored stuff, like tshirts, inanimate objects
+
+
+- still need random cropping to expand image space
+
+
+- but probably want more categories so can't use a dog/non-dog classifier
+
+
+
 # Anti-bot techniques common to all CAPTCHA levels
 
 * A minimum solve time is applied as a form of rate-limiting
