@@ -103,6 +103,8 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 ### Description
 
+IF THIS IS EASIER TO DO, THEN DONT BOTHER WITH LEVEL 7 ???
+
 The challenge involves wordplay, puns and jokes which require a semantic-level understanding of the language. (how to generate tho??) -- also too difficult for humans/ESL?
 
 This will also kill captcha solvers over time.
@@ -113,10 +115,16 @@ take inspiration from 'things that humans do naturally that computers find it ha
 
 - drag to the correct spots based on functions / categorize similar things together / ?
 
+- rotate objects -> nn are not designed to do this yet
+
+
 but is it even feasible to test something beyond visual on a computer interface?
 
 ## Level 9-10: (TODO)
 
+- with a strict time limit to stop captcha-solver services (<5 or 10 seconds)
+	- start timing from request complete, but time request to give more allowance for slow connection?
+- disallow double retrieve for question
 
 
 or visual illusions lol, which central circle looks smaller. hard for machines to replicate the same mistake as humans?
