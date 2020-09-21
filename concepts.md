@@ -123,7 +123,11 @@ danger is easily hard-coded against
 
 
 hmm changing hue works, but won't computers be able to identify it? have to test myself by training a neural network to defeat it
--- does it really work though, use darknet and see the % pred. cant do online
+-- does it really work though, use darknet and see the % pred of dog whether drop completely or what. cant do online
+-- if darknet cant do it, then train something to do it - use https://docs.fast.ai/tutorial.vision, but this means i have to write the code to gen the image anyway fuck.
+---- run first to make sure it works normally, then write my code
+---- +-60 out of +-180 (16% shift) ~= 42/256
+-- if accuracy not more than 1%, then good to go
 
 
 - from the rotate captcha paper
@@ -138,6 +142,16 @@ hmm changing hue works, but won't computers be able to identify it? have to test
 
 - but probably want more categories so can't use a dog/non-dog classifier
 
+
+cumu, x2
+9c1 = 9  - 11%, 1%
+9c2 = 36 - 2%, 0.049%
+9c3 = 84 - 0.77%, 0.006%
+9c4 = 126 - 0.39%, 0.0015%
+
+-- we prob want 1 in 500-1000 baseline / 0.5-0.1, then ramp up to 1 in 10000 / 0.01%
+
+-- hence, 9c3, x2
 
 
 # Anti-bot techniques common to all CAPTCHA levels
