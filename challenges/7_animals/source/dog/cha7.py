@@ -239,7 +239,12 @@ for idx, jpeg_file in enumerate(jpeg_files):
             im = im.crop((left, upper, right, lower))
 
 
-        im = im.resize((150, 150)) # must maintain aspect latio
+        im = im.resize((150, 150))
+
+        filenames = []
+        # write a file with the hash as the filename
+        filename_ori = hashlib.md5(im.tobytes()).hexdigest()
+        filenames.append(filename_ori)
 
 
         im2 = im.convert('HSV')
@@ -247,30 +252,36 @@ for idx, jpeg_file in enumerate(jpeg_files):
         pixels = list(im2.getdata())
 
         hue_skew = random.randint(42,72)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+        im2 = im2.convert('RGB')
+        filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
+        im2.save(filename_1 + '.jpg') # add path
+        filenames.append(filename_1)
 
         hue_skew = random.randint(108,148)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+        im2 = im2.convert('RGB')
+        filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
+        im2.save(filename_2 + '.jpg') # add path
+        filenames.append(filename_2)
 
         hue_skew = random.randint(184,214)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+        im2 = im2.convert('RGB')
+        filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
+        im2.save(filename_3 + '.jpg') # add path
+        filenames.append(filename_3)
 
-
-        # write a file with the hash as the filename
-        filename = hashlib.sha256(imagefile)
-
-        # remove the original image
-        os.remove(jpeg_file)
 
         # log hash -> details
         logging.debug(f"{filename} - {video_details['filename']} , {frame_details[idx]['framenumber']}")
 
         previous_frame_hash = current_frame_hash
 
-        # save the image.
-        im.save(jpeg_file)
+        # rename the image
+        os.rename(jpeg_file, filename_ori + '.jpg')
 
-
+        image_grouping.append(filenames)
 
 
 ### cropping an image

@@ -95,6 +95,16 @@ python3 server.py &
 # Proceed with step 2 of Installation section above
 ```
 
+Additional requirements for challenge level 7
+
+```
+sudo apt install ffmpeg
+
+# Place videos in challenges/7/videos
+# Allow server.py to be executed and wait for it to generate challenge 7 images, before running flask_core.py
+```
+
+
 ## Todo
 
 * Implement challenges for higher difficulties (currently up to 6)

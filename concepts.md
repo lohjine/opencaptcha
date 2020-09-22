@@ -109,6 +109,8 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 ### Description
 
+probably want a captcha that is hard for captcha farms to do -- TIME LIMITO ?!
+
 IF THIS IS EASIER TO DO, THEN DONT BOTHER WITH LEVEL 7 ???
 
 The challenge involves wordplay, puns and jokes which require a semantic-level understanding of the language. (how to generate tho??) -- also too difficult for humans/ESL?
