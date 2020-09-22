@@ -9,7 +9,70 @@ import logging
 from PIL import Image
 import PIL
 
-#
+###### TESTING NEW
+
+# for each file, gen 3 other hue-ified image
+
+import numpy as np
+
+for image_path in glob(path/"images"/'*.jpg'):
+
+    im = Image.open(image_path)
+    im2 = im.convert('HSV')
+
+    pixels = np.array(im2)
+    pixels[:,:,0] += 42 # we can slight randomize this number in prod, give NN the best chance first
+    pixels[pixels[:,:,0] >= 256, 0] -= 256
+    im_out = PIL.Image.fromarray(pixels, mode='HSV')
+    im_out.convert('RGB').save(os.path.split(image_path)[0] + '/ZZZ1' + os.path.split(image_path)[1])
+
+    pixels = np.array(im2)
+    pixels[:,:,0] += 128
+    pixels[pixels[:,:,0] >= 256, 0] -= 256
+    im_out = PIL.Image.fromarray(pixels, mode='HSV')
+    im_out.convert('RGB').save(os.path.split(image_path)[0] + '/ZZZ2' + os.path.split(image_path)[1])
+
+
+    pixels = np.array(im2)
+    pixels[:,:,0] += 213
+    pixels[pixels[:,:,0] >= 256, 0] -= 256
+    im_out = PIL.Image.fromarray(pixels, mode='HSV')
+    im_out.convert('RGB').save(os.path.split(image_path)[0] + '/ZZZ3' + os.path.split(image_path)[1])
+
+
+
+######
+
+
+#####
+
+# okay new mode fml
+
+
+# get random frames from videos, 1 every sec, or + 0.5-1.5 sec from current would be better
+
+# do we still want to check if frame too similar?
+# in case video is a still..
+
+
+# get foreground, background?
+# too compute intensive
+
+# crop longer dim from random amounts from each side
+
+# crop both dims a random amount
+
+# resize to 150x150
+
+
+# produce hue-skewed variants
+
+
+
+
+####
+
+
 
 get number of frames
 
@@ -103,6 +166,10 @@ for toml_file in toml_files:
 ffmpeg -i myVideo.mov -vf \
     select='eq(n\,1)+eq(n\,200)+eq(n\,400)+eq(n\,600)+eq(n\,800)+eq(n\,1000)' -vsync vfr -q:v 2 %d.jpg
 
+
+image_grouping = []
+
+
 jpeg_files = glob('*.jpg') # => need to be in order!
 
 for idx, jpeg_file in enumerate(jpeg_files):
@@ -118,11 +185,76 @@ for idx, jpeg_file in enumerate(jpeg_files):
             os.remove(jpeg_file)
             continue
 
+
+
+        resolution = video_details['resolution']
+
+        im = Image.open(jpeg_file)
+
         # do the image modifications
         ## crop a random amount
         ## pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
         ## change lighting level
         ## add a light tint
+
+        # crop
+        if resolution[0] > resolution[1]:
+            crop_amount_px = resolution[0] - resolution[1]
+
+            crop_amount_px_additional = int(random.random() * 0.15 * resolution[1])
+
+            # add up to 15% of image
+            crop_amount_px +=  crop_amount_px_additional
+
+            # split the crop randomly from left and right
+            crop_split_left = int(random.random() * crop_amount_px)
+            crop_split_right = crop_amount_px - crop_split_left
+
+            # split the crop randomly from top and bottom
+            crop_split_top = int(random.random() * crop_amount_px)
+            crop_split_bottom = crop_amount_px - crop_split_top
+
+            left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, resolution[1] - crop_split_bottom
+
+            im = im.crop((left, upper, right, lower))
+
+        else:
+            crop_amount_px = resolution[1] - resolution[0]
+
+            crop_amount_px_additional = int(random.random() * 0.15 * resolution[0])
+
+            # add up to 15% of image
+            crop_amount_px +=  crop_amount_px_additional
+
+            # split the crop randomly from left and right
+            crop_split_top = int(random.random() * crop_amount_px)
+            crop_split_bottom = crop_amount_px - crop_split_top
+
+            # split the crop randomly from top and bottom
+            crop_split_left = int(random.random() * crop_amount_px)
+            crop_split_right = crop_amount_px - crop_split_left
+
+            left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, resolution[1] - crop_split_bottom
+
+            im = im.crop((left, upper, right, lower))
+
+
+        im = im.resize((150, 150)) # must maintain aspect latio
+
+
+        im2 = im.convert('HSV')
+
+        pixels = list(im2.getdata())
+
+        hue_skew = random.randint(42,72)
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+
+        hue_skew = random.randint(108,148)
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+
+        hue_skew = random.randint(184,214)
+        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels]).convert('RGB').save()
+
 
         # write a file with the hash as the filename
         filename = hashlib.sha256(imagefile)

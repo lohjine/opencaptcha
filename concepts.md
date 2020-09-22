@@ -113,6 +113,8 @@ IF THIS IS EASIER TO DO, THEN DONT BOTHER WITH LEVEL 7 ???
 
 The challenge involves wordplay, puns and jokes which require a semantic-level understanding of the language. (how to generate tho??) -- also too difficult for humans/ESL?
 
+** textcaptcha.com
+
 This will also kill captcha solvers over time.
 
 take inspiration from 'things that humans do naturally that computers find it hard to do'
@@ -121,7 +123,6 @@ take inspiration from 'things that humans do naturally that computers find it ha
 
 - drag to the correct spots based on functions / categorize similar things together / ?
 
-- rotate objects -> nn are not designed to do this yet
 
 
 but is it even feasible to test something beyond visual on a computer interface?
@@ -137,6 +138,7 @@ or visual illusions lol, which central circle looks smaller. hard for machines t
 danger is easily hard-coded against
 - this is easier for humans, but how to make more options for harder bruteforce?
 
+========================
 
 hmm changing hue works, but won't computers be able to identify it? have to test myself by training a neural network to defeat it
 -- does it really work though, use darknet and see the % pred of dog whether drop completely or what. cant do online
