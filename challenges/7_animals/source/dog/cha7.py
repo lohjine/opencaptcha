@@ -470,7 +470,8 @@ crop_x = video_details['resolution'][0]
 
 
 
-im = Image.open(r"C:\Users\loh.je\Downloads\1.jpg")
+#im = Image.open(r"C:\Users\loh.je\Downloads\1.jpg")
+im = Image.open(r"2.jpg")
 left, upper, right, lower = 800,400,1500,1700
 
 
@@ -514,14 +515,18 @@ for i in range(im.size[0]): # for every pixel: # TO DO TEST AGAINST GOOGLE (with
     # 2.1 1.8, 1.05 minimum
     for j in range(im.size[1]):
         if pixels[i,j][2] < 50:
-            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 20 ) * 1.7 ))
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 0 ) * 1.3 ))
+            pass
         elif pixels[i,j][2] < 100:
-            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 10) * 1.6))
+            pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int((pixels[i,j][2] + 10) * 1.2))
+            pass
         elif pixels[i,j][2] < 200:
             pixels[i,j] = (pixels[i,j][0], pixels[i,j][1], int(pixels[i,j][2] * 1.05))
+            pass
 
 
 im2.convert('RGB').save(r"C:\Users\loh.je\Downloads\2.jpg")
+im2.convert('RGB').save("3.jpg")
 ## apply tint
 
 im2 = im2.convert('RGB')
