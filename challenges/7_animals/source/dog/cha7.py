@@ -8,6 +8,10 @@ import hashlib
 import logging
 from PIL import Image
 import PIL
+from collections import defaultdict
+import os
+import pickle
+import time
 
 ###### TESTING NEW
 
@@ -40,6 +44,27 @@ for image_path in glob(path/"images"/'*.jpg'):
     im_out.convert('RGB').save(os.path.split(image_path)[0] + '/ZZZ3' + os.path.split(image_path)[1])
 
 
+## seems good
+
+
+# test similarity hash
+
+
+a = imagehash.dhash(im1)
+b = imagehash.dhash(im2)
+c = imagehash.dhash(im3)
+
+a == b
+b == c
+
+
+a1 = image_similarity_hash(im1)
+b1 = image_similarity_hash(im2)
+c1 = image_similarity_hash(im3)
+
+a1 == b1
+b1 == c1
+a1 == c1
 
 ######
 
@@ -72,11 +97,21 @@ for image_path in glob(path/"images"/'*.jpg'):
 
 ####
 
+def image_similarity_hash(im):
+    """
+    Calculates average hash as defined in http://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html
+    """
 
+    im = im.resize((10,10) ,resample=0) # 10x10 to be more stricter in determine similarity, as measured during testing
+    im = im.convert(mode='L')
 
-get number of frames
+    data = list(im.getdata())
 
-ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 input.mp4
+    avg = sum(data) / len(data)
+
+    image_hash = [i>=avg for i in data]
+
+    return image_hash
 
 
 # then choose a number of frames per video
@@ -127,6 +162,56 @@ with open('new_toml_file.toml', 'r') as f:
     b = toml.load(f)
 
 
+# gen toml file function
+
+
+def gen_toml_file(full_refresh=False):
+    """
+
+    """
+
+    all_files = glob(os.path.join('challenges','7','videos','*'))
+
+    toml_files = set([i for i in all_files if i[-4:] == 'toml'])
+    video_files = [i for i in all_files if i[-4:] != 'toml']
+
+    files_processed = 0
+    files_error = 0
+    files_skipped = 0
+
+    for video in video_files:
+        if not full_refresh and os.path.split(video)[-1] in toml_files:
+            files_skipped += 1
+            continue
+        else:
+
+            toml_filepath = video + '.toml'
+
+            cmd_full = 'ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1' + video
+
+            try:
+                output = subprocess.check_output(cmd_full, shell=True)
+            except Exception as e:
+                logging.error(f"Error with ffprobe command: {cmd_full}")
+                logging.error(f"{e}")
+                files_error += 1
+
+            ## format output into toml file
+            video_details = {'filename': os.path.split(video)[-1],
+                             'duration': 60.2, # seconds
+                             'videofps': 24,
+                             'resolution': (700,480)
+                             }
+
+            with open(toml_filepath, 'w') as f:
+                _ = toml.dump(video_details, f)
+
+            files_processed += 1
+
+    logging.info('{files_processed} files processed. {files_error} files error. {files_skipped} files skipped.')
+
+    return True
+
 ### processing images
 # don't want to choose too many frames
 
@@ -135,6 +220,28 @@ with open('new_toml_file.toml', 'r') as f:
 
 # as we process
 # also should determine that 'adjacent' frames are not too similar, which also helps to rule out slow motion
+
+
+base_folder = os.path.join('tmp','challenge_7_image_gen')
+raw_image_folder = os.path.join(base_folder,'raw')
+completed_image_folder =  os.path.join(base_folder,'completed')
+video_folder = os.path.join('challenges','7','videos')
+
+if not os.path.exists('tmp'):
+    os.mkdir('tmp')
+
+# ensure a clean start
+if os.path.exists(base_folder):
+    shutil.rmtree(base_folder)
+os.mkdir(base_folder)
+os.mkdir(raw_image_folder)
+os.mkdir(completed_image_folder)
+
+image_grouping = []
+
+image_debug_trace = defaultdict(list)
+
+# == for each video
 
 toml_files = glob('*.toml')
 
@@ -156,132 +263,172 @@ for toml_file in toml_files:
 
         frame = random.randint(1, video_details['videofps']) + i*video_details['videofps']
 
-        # if bb not negative or too near edge, accept the frame
 
         frame_to_process.append(frame)
         frame_details.append({'framenumber':frame})
 
 # dump images using ffmpeg to a tmp folder
 
-ffmpeg -i myVideo.mov -vf \
-    select='eq(n\,1)+eq(n\,200)+eq(n\,400)+eq(n\,600)+eq(n\,800)+eq(n\,1000)' -vsync vfr -q:v 2 %d.jpg
 
+cmd_frames = ''
+for frame in frame_to_process:
+    cmd_frames += f'eq(n\,{frame})+'
+cmd_frames = cmd_frames[:-1]
 
-image_grouping = []
+cmd_start = f"ffmpeg -i {os.path.join(video_folder,video_details['filename'])} -vf select='"
+cmd_end =  f"' -vsync vfr -q:v 2 {raw_image_folder+os.path.sep}%d.jpg"
 
+cmd_full = cmd_start + cmd_frames + cmd_end
 
-jpeg_files = glob('*.jpg') # => need to be in order!
+try:
+    subprocess.check_output(cmd_full, shell=True)
+except Exception as e:
+    logging.error(f"Error with ffmpeg command: {cmd_full}")
+    raise
+
+jpeg_files = glob('*.jpg') # => need to be in order! | nt rly
+
+resolution = video_details['resolution']
 
 for idx, jpeg_file in enumerate(jpeg_files):
 
     previous_frame_hash = ''
 
+
+    im = Image.open(jpeg_file)
+
     # check if frame is too similar to previous one
     # no wait can't do here, don't have the image
-    if i > 0:
-        current_frame_hash = somehash(frame)
+    if idx > 0:
+        current_frame_hash = image_similarity_hash(im)
         if current_frame_hash == previous_frame_hash:
             # delete image
             os.remove(jpeg_file)
             continue
 
+    # do the image modifications
+    ## crop a random amount
+    ## pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
+    ## change lighting level
+    ## add a light tint
+
+    # crop
+    if resolution[0] > resolution[1]:
+        crop_amount_px = resolution[0] - resolution[1]
+
+        crop_amount_px_additional = int(random.random() * 0.15 * resolution[1])
+
+        # add up to 15% of image
+        crop_amount_px +=  crop_amount_px_additional
+
+        # split the crop randomly from left and right
+        crop_split_left = int(random.random() * crop_amount_px)
+        crop_split_right = crop_amount_px - crop_split_left
+
+        # split the crop randomly from top and bottom
+        crop_split_top = int(random.random() * crop_amount_px_additional)
+        crop_split_bottom = resolution[1] - (crop_amount_px_additional - crop_split_top)
+
+        left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, crop_split_bottom
+
+        im = im.crop((left, upper, right, lower))
+
+    else:
+        crop_amount_px = resolution[1] - resolution[0]
+
+        crop_amount_px_additional = int(random.random() * 0.15 * resolution[0])
+
+        # add up to 15% of image
+        crop_amount_px +=  crop_amount_px_additional
+
+        # split the crop randomly from left and right
+        crop_split_top = int(random.random() * crop_amount_px)
+        crop_split_bottom = crop_amount_px - crop_split_top
+
+        # split the crop randomly from top and bottom
+        crop_split_left = int(random.random() * crop_amount_px_additional)
+        crop_split_right = resolution[0] - (crop_amount_px_additional - crop_split_left)
+
+        left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, crop_split_bottom
+
+        im = im.crop((left, upper, right, lower))
 
 
-        resolution = video_details['resolution']
+    im = im.resize((150, 150), resample=4) # do not need high quality in downscaling
 
-        im = Image.open(jpeg_file)
+    if random.random() > 0.5:
+        im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT) # very powerful
 
-        # do the image modifications
-        ## crop a random amount
-        ## pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
-        ## change lighting level
-        ## add a light tint
+    filenames = []
+    # write a file with the hash as the filename
+    filename_ori = hashlib.md5(im.tobytes()).hexdigest()
+    filenames.append(filename_ori)
 
-        # crop
-        if resolution[0] > resolution[1]:
-            crop_amount_px = resolution[0] - resolution[1]
+    im2 = im.convert('HSV')
 
-            crop_amount_px_additional = int(random.random() * 0.15 * resolution[1])
+    pixels = list(im2.getdata())
 
-            # add up to 15% of image
-            crop_amount_px +=  crop_amount_px_additional
+    hue_skew = random.randint(42,72)
+    im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+    im2 = im2.convert('RGB')
+    filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
+    im2.save(filename_1 + '.jpg') # add path
+    filenames.append(filename_1)
 
-            # split the crop randomly from left and right
-            crop_split_left = int(random.random() * crop_amount_px)
-            crop_split_right = crop_amount_px - crop_split_left
+    hue_skew = random.randint(108,148)
+    im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+    im2 = im2.convert('RGB')
+    filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
+    im2.save(filename_2 + '.jpg') # add path
+    filenames.append(filename_2)
 
-            # split the crop randomly from top and bottom
-            crop_split_top = int(random.random() * crop_amount_px)
-            crop_split_bottom = crop_amount_px - crop_split_top
+    hue_skew = random.randint(184,214)
+    im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
+    im2 = im2.convert('RGB')
+    filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
+    im2.save(filename_3 + '.jpg') # add path
+    filenames.append(filename_3)
 
-            left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, resolution[1] - crop_split_bottom
+    # log hash -> details
+    logging.debug(f"{video_details['filename']} , {frame_details[idx]['framenumber']}")
 
-            im = im.crop((left, upper, right, lower))
+    previous_frame_hash = current_frame_hash
 
-        else:
-            crop_amount_px = resolution[1] - resolution[0]
+    # rename the image
+    os.rename(jpeg_file, filename_ori + '.jpg')
 
-            crop_amount_px_additional = int(random.random() * 0.15 * resolution[0])
+    image_grouping.append(filenames)
 
-            # add up to 15% of image
-            crop_amount_px +=  crop_amount_px_additional
-
-            # split the crop randomly from left and right
-            crop_split_top = int(random.random() * crop_amount_px)
-            crop_split_bottom = crop_amount_px - crop_split_top
-
-            # split the crop randomly from top and bottom
-            crop_split_left = int(random.random() * crop_amount_px)
-            crop_split_right = crop_amount_px - crop_split_left
-
-            left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, resolution[1] - crop_split_bottom
-
-            im = im.crop((left, upper, right, lower))
+    image_debug_trace[video_details['filename']].extend(filenames)
 
 
-        im = im.resize((150, 150))
+# move files to completed folder
+for filepath in glob(os.path.join(raw_image_folder,'*.jpg')):
+    path, file = os.path.split(filepath)
+    shutil.move(filepath, os.path.join(completed_image_folder, file))
 
-        filenames = []
-        # write a file with the hash as the filename
-        filename_ori = hashlib.md5(im.tobytes()).hexdigest()
-        filenames.append(filename_ori)
+# finally
+# dump image_grouping
+with open(os.path.join(completed_image_folder,'image_grouping.pkl'),'wb') as f:
+    pickle.dump(image_grouping, f)
 
+served_dir_name = str(int(time.time()))
 
-        im2 = im.convert('HSV')
+# dump image_debug_trace
+with open(os.path.join('logs',f'challenge_7_image_debug_trace_{served_dir_name}.pkl'),'wb') as f:
+    pickle.dump(image_debug_trace, f)
 
-        pixels = list(im2.getdata())
+# and move entire folder to challenge dir for serving
+shutil.move(completed_image_folder, os.path.join('challenges','7','images',served_dir_name))
 
-        hue_skew = random.randint(42,72)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
-        im2 = im2.convert('RGB')
-        filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
-        im2.save(filename_1 + '.jpg') # add path
-        filenames.append(filename_1)
-
-        hue_skew = random.randint(108,148)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
-        im2 = im2.convert('RGB')
-        filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
-        im2.save(filename_2 + '.jpg') # add path
-        filenames.append(filename_2)
-
-        hue_skew = random.randint(184,214)
-        im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
-        im2 = im2.convert('RGB')
-        filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
-        im2.save(filename_3 + '.jpg') # add path
-        filenames.append(filename_3)
+# clean up directories
+shutil.rmtree(base_folder)
 
 
-        # log hash -> details
-        logging.debug(f"{filename} - {video_details['filename']} , {frame_details[idx]['framenumber']}")
 
-        previous_frame_hash = current_frame_hash
 
-        # rename the image
-        os.rename(jpeg_file, filename_ori + '.jpg')
 
-        image_grouping.append(filenames)
+
 
 
 ### cropping an image
@@ -317,15 +464,10 @@ crop_lr_ratio = random.randint(0,100) / 100
 # 150x150 is pretty damn small, so maybe don't overcrop
 # randomize the shorter side first, then take the other side
 
-x_start =
 
 crop_x = video_details['resolution'][0]
 
 
-crop_down =
-crop_up =
-crop_left =
-crop_right =
 
 
 im = Image.open(r"C:\Users\loh.je\Downloads\1.jpg")
@@ -409,9 +551,6 @@ im2.convert('RGB').save(r"C:\Users\loh.je\Downloads\2.jpg")
 
 
 
-# now move the files elsewhere
-for f in os.listdir(source):
-    shutil.move(os.path.join(source, f), dist)
 
 ########## practicality
 
