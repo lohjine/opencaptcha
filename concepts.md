@@ -109,7 +109,8 @@ For animal sounds, the only available model I can find is [this](https://lis-uni
 
 ### Description
 
-probably want a captcha that is hard for captcha farms to do -- TIME LIMITO ?!
+probably want a captcha that is hard for captcha farms to do -- TIME LIMITO ?! -> then must be fast for human to do
+but also hard enough that machine cant do?
 
 IF THIS IS EASIER TO DO, THEN DONT BOTHER WITH LEVEL 7 ???
 
@@ -133,7 +134,8 @@ but is it even feasible to test something beyond visual on a computer interface?
 
 - with a strict time limit to stop captcha-solver services (<5 or 10 seconds)
 	- start timing from request complete, but time request to give more allowance for slow connection?
-- disallow double retrieve for question
+- disallow double retrieve for question? - no use, all captcha support refreshing
+- but need csrf to prevent preloading
 
 
 or visual illusions lol, which central circle looks smaller. hard for machines to replicate the same mistake as humans?

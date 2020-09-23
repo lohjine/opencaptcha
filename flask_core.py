@@ -14,6 +14,7 @@ from io import BytesIO
 import pyttsx3
 from glob import glob
 import json
+import pickle
 
 app = Blueprint('app', __name__)
 
@@ -45,6 +46,42 @@ with open(os.path.join(dirname, 'challenges', 'copywordchallenge_audio.js'), 'r'
 with open(os.path.join(dirname, 'challenges', 'animalchallenge.js'), 'r') as f:
     challenge7 = f.read()
 challenge7_animals = os.listdir(os.path.join(dirname, 'challenges', '7_animals', 'source'))
+
+
+
+
+def update_challenge_7_images(first_run=False, challenge_7_directory=None, challenge_7_files=None):
+    """
+    Prepares for serving challenge_7_images. Checks for updates to challenge_7_images and replaces current files with the newer ones.
+    """
+
+    # check whether new directory
+    images = os.listdir(os.path.join(dirname, 'challenges','7','images'))
+
+    if len(images) == 0:
+        raise ValueError('No available images for challenge 7, either set max_challenge_level = 6 in settings.ini, or run server.py to generate challenge 7 images.')
+
+    # Move the latest challenge_7_directory to end of list
+    images.sort()
+
+    if first_run:
+        with open(os.path.join(dirname, 'challenges','7','images',images[-1],'image_grouping.pkl'),'rb') as f:
+            challenge_7_files = pickle.load(f)
+
+        challenge_7_directory = images[-1]
+    else:
+        # Update if a newer challenge_7_directory is found
+        if images[-1] > challenge_7_directory:
+            with open(os.path.join(dirname, 'challenges','7','images',images[-1],'image_grouping.pkl'),'rb') as f:
+                challenge_7_files = pickle.load(f)
+
+            challenge_7_directory = images[-1]
+
+    return challenge_7_directory, challenge_7_files
+
+
+if config['max_challenge_level'] >= 7:
+    challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=True)
 
 
 @app.route('/<path:text>')
