@@ -100,6 +100,12 @@ a1 == c1
 def image_similarity_hash(im):
     """
     Calculates average hash as defined in http://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html
+
+    Args:
+        im (pillow.Image)
+
+    Returns:
+        hash consisting of list of booleans
     """
 
     im = im.resize((10,10) ,resample=0) # 10x10 to be more stricter in determine similarity, as measured during testing
