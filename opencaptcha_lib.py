@@ -3,6 +3,9 @@ import logging
 import os
 from ipaddress import ip_network, ip_address
 import time
+from glob import glob
+import subprocess
+import toml
 
 token_length = 11
 site_key_length = 10
@@ -10,6 +13,106 @@ site_secret_length = 18
 challenge_id_length = 8
 
 dirname = os.path.dirname(__file__)
+
+
+def image_similarity_hash(im):
+    """
+    Calculates average hash as defined in http://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html
+
+    Args:
+        im (pillow.Image)
+
+    Returns:
+        list: hash consisting of list of booleans
+    """
+
+    im = im.resize((10,10) ,resample=0) # 10x10 to be more stricter in determine similarity, as measured during testing
+    im = im.convert(mode='L')
+
+    data = list(im.getdata())
+
+    avg = sum(data) / len(data)
+
+    image_hash = [i>=avg for i in data]
+
+    return image_hash
+
+
+def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refresh=False, ffprobe_path = ''):
+    """
+    Generates toml files for video files for challenge 7
+
+    Args:
+        directory (str): path for video files for challenge 7
+        full_refresh (bool): If False, skips videos which already have a toml file
+        ffprobe_path (str): path of ffprobe executable, blank string if already in path
+
+    """
+
+    all_files = glob(os.path.join(directory,'*'))
+
+    toml_files = set([os.path.split(i)[-1][:-5] for i in all_files if i[-4:] == 'toml'])
+    video_files = [i for i in all_files if i[-4:] != 'toml']
+
+    files_processed = 0
+    files_error = 0
+    files_skipped = 0
+
+    if ffprobe_path:
+        ffprobe_path = os.path.join(ffprobe_path, 'ffprobe')
+    else:
+        ffprobe_path = 'ffprobe'
+
+    for video in video_files:
+        if not full_refresh and os.path.split(video)[-1] in toml_files:
+            files_skipped += 1
+            continue
+        else:
+
+            toml_filepath = video + '.toml'
+
+            cmd_full = ffprobe_path + ' -select_streams v:0 ' + video
+
+            try:
+                output = subprocess.check_output(cmd_full, stderr=subprocess.STDOUT, shell=True)
+                output = output.decode('utf-8').splitlines()
+            except Exception as e:
+                logging.error(f"Error with ffprobe command: {cmd_full}")
+                logging.error(f"{e.output}")
+                files_error += 1
+                continue
+
+
+            # parse output
+            duration = None
+            videofps = None
+            resolution = None
+            
+            for i in output:
+                if 'Duration: ' in i:
+                    duration = i.split(',')[0].split(' ')[-1]
+                    hour, minute, second = duration.split('.')[0].split(':')
+                    duration = int(hour)*60*60 + int(minute)*60 + int(second) + int(duration.split('.')[-1])/100
+                    
+                if 'Stream' in i and 'Video' in i:
+                    videofps = float(i.split(' fps,')[0].split(', ')[-1])
+                    resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split('x')]
+
+            ## format output into toml file
+            video_details = {'filename': os.path.split(video)[-1],
+                             'duration': duration, # seconds
+                             'videofps': videofps,
+                             'resolution': resolution
+                             }
+
+            with open(toml_filepath, 'w') as f:
+                _ = toml.dump(video_details, f)
+
+            files_processed += 1
+
+    logging.info('{files_processed} files processed. {files_error} files error. {files_skipped} files skipped.')
+
+    return True
 
 
 def check_ip_in_lists(ip, db_connection, penalties):

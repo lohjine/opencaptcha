@@ -43,9 +43,8 @@ with open(os.path.join(dirname, 'challenges', 'copywordchallenge_image.js'), 'r'
     challenge6 = f.read()
 with open(os.path.join(dirname, 'challenges', 'copywordchallenge_audio.js'), 'r') as f:
     challenge6_audio = f.read()
-with open(os.path.join(dirname, 'challenges', 'animalchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges', 'colorchallenge.js'), 'r') as f:
     challenge7 = f.read()
-challenge7_animals = os.listdir(os.path.join(dirname, 'challenges', '7_animals', 'source'))
 
 
 
@@ -69,6 +68,7 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
             challenge_7_files = pickle.load(f)
 
         challenge_7_directory = images[-1]
+        return challenge_7_directory, challenge_7_files
     else:
         # Update if a newer challenge_7_directory is found
         if images[-1] > challenge_7_directory:
@@ -77,12 +77,14 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
 
             challenge_7_directory = images[-1]
 
-    return challenge_7_directory, challenge_7_files
+            return challenge_7_directory, challenge_7_files
+        else:
+            return None, None
 
-
-if config['max_challenge_level'] >= 7:
+if int(config['captcha']['max_challenge_level']) >= 7:
     challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=True)
 
+    challenge_7_info = {'directory': challenge_7_directory, 'files': challenge_7_files}
 
 @app.route('/<path:text>')
 def opencaptcha(text):
@@ -130,10 +132,12 @@ def requestchallenge():
 
     challenge_level += penalty_added
 
-    if challenge_level > config['max_challenge_level']:
-        challenge_level = config['max_challenge_level']
+    if challenge_level > int(config['captcha']['max_challenge_level']):
+        challenge_level = int(config['captcha']['max_challenge_level'])
 
-    min_time = time.time() + 1;challenge_level=6
+    min_time = time.time() + 1;challenge_level=7
+    
+    print(challenge_level)
 
     try:
         if challenge_level <= 1:
@@ -168,7 +172,7 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6:
+        elif challenge_level == 6:
 
             if blind:
                 challenge = challenge6_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -207,48 +211,53 @@ def requestchallenge():
                 challenge = challenge.replace('{{IMG}}', img_str)
 
         elif challenge_level >= 7:  # assume they will ocr/transcribe at this point
-            # might want to do animal images / sounds
-            # but open source how are we going to permutate this?! - maybe frames from dog videos are better!!
-            # take inspiration from WAIT on how to make reversing it hard!
-            # for sounds, i am not expert, but applying background music and noise should make it hard to match up to originals!
 
             if blind:
                 pass
             else:
-                # choose a random answer
-                correct_animal = random.choice(challenge7_animals)
-                wrong_animals = challenge7_animals.copy()
-                wrong_animals.remove(correct_animal)
-                number_matching = random.randint(2, 8)
+                challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
-                answer = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-                random.shuffle(answer)
-                answer = answer[:number_matching]
-
-                # look for the latest folder to sample from
-                # do it individually for each animal to prevent race conditions
-                latest_folders = {}
-
-                for i in challenge7_animals:
-                    available_folders = sorted(
-                        os.listdir(
-                            os.path.join(
-                                dirname,
-                                'challenges',
-                                '7_animals',
-                                'images',
-                                challenge7_animals[0])))
-                    latest_folders[i] = glob(os.path.join(dirname, 'challenges', '7_animals', 'images', i, available_folders[-1], '*'))
-
+                # check for updates
+                challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=False,
+                                                                                     challenge_7_directory=challenge_7_info['directory'],
+                                                                                     challenge_7_files=challenge_7_info['files'])
+                
+                if challenge_7_directory:
+                    challenge_7_info['directory'] = challenge_7_directory
+                    challenge_7_info['files'] = challenge_7_files
+                
+                # choose 3 random questions
+                questions = random.choices(challenge_7_info['files'], k=3)
+                
+                correct_answers = set([i[0] for i in questions])
+                
+                # select random options
+                # but including the correct first option
+                questions = [random.choices(i[1:], k=2) + [i[0]] for i in questions]
+                
+                for question in questions:
+                    random.shuffle(question)
+                        
                 images = []
-                for i in range(10):
-                    if i in answer:
-                        images.append(random.sample(latest_folders[correct_animal], 1)) # may double select...?
-                    else:
-                        wrong_animal = random.choice(wrong_animals)
-                        images.append(random.sample(latest_folders[wrong_animal], 1))
-
-                challenge.replace({{images}}, json.dumps(images))
+                # choose randomly horizontal or vertical layout
+                if random.random() > 0.5:
+                    # horizontal
+                    for question in questions:
+                        images.extend(question)
+                else:
+                    # vertical
+                    for i in range(3):
+                        for question in questions:
+                            images.append(question[i])
+                
+                answer = []
+                for idx, i in enumerate(images):
+                    if i in correct_answers:
+                        answer.append(idx)
+                        
+                challenge = challenge.replace('{{IMAGES}}', json.dumps(images))
+                
+                print(answer)
 
         elif challenge_level >= 8:  # assume they will do NN-ML at this point
             pass

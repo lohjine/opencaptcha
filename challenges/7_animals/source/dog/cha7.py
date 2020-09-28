@@ -171,14 +171,17 @@ with open('new_toml_file.toml', 'r') as f:
 # gen toml file function
 
 
-def gen_toml_file(full_refresh=False):
+directory = os.path.join('challenges','7','videos','*')
+ffprobe_path = r"C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\\"
+
+def gen_toml_file(directory, full_refresh=False, ffprobe_path = ''):
     """
 
     """
 
-    all_files = glob(os.path.join('challenges','7','videos','*'))
+    all_files = glob(directory)
 
-    toml_files = set([i for i in all_files if i[-4:] == 'toml'])
+    toml_files = set([os.path.split(i)[-1][:-5] for i in all_files if i[-4:] == 'toml'])
     video_files = [i for i in all_files if i[-4:] != 'toml']
 
     files_processed = 0
@@ -193,20 +196,38 @@ def gen_toml_file(full_refresh=False):
 
             toml_filepath = video + '.toml'
 
-            cmd_full = 'ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1' + video
+#            cmd_full = ffprobe_path + 'ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 ' + video
+            cmd_full = ffprobe_path + 'ffprobe -select_streams v:0 ' + video
 
             try:
-                output = subprocess.check_output(cmd_full, shell=True)
+                output = subprocess.check_output(cmd_full, stderr=subprocess.STDOUT, shell=True)
+                output = output.decode('utf-8').splitlines()
             except Exception as e:
                 logging.error(f"Error with ffprobe command: {cmd_full}")
                 logging.error(f"{e}")
                 files_error += 1
 
+
+            # parse output
+            duration = None
+            videofps = None
+            resolution = None
+            
+            for i in output:
+                if 'Duration: ' in i:
+                    duration = i.split(',')[0].split(' ')[-1]
+                    hour, minute, second = duration.split('.')[0].split(':')
+                    duration = int(hour)*60*60 + int(minute)*60 + int(second) + int(duration.split('.')[-1])/100
+                    
+                if 'Stream' in i and 'Video' in i:
+                    videofps = float(i.split(' fps,')[0].split(', ')[-1])
+                    resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split('x')]
+
             ## format output into toml file
             video_details = {'filename': os.path.split(video)[-1],
-                             'duration': 60.2, # seconds
-                             'videofps': 24,
-                             'resolution': (700,480)
+                             'duration': duration, # seconds
+                             'videofps': videofps,
+                             'resolution': resolution
                              }
 
             with open(toml_filepath, 'w') as f:
@@ -247,9 +268,14 @@ image_grouping = []
 
 image_debug_trace = defaultdict(list)
 
+
+## probably want to multiprocess this..
+# but we do single process for now
 # == for each video
 
-toml_files = glob('*.toml')
+directory = os.path.join('challenges','7','videos')
+
+toml_files = glob(os.path.join(directory, '*.toml'))
 
 frame_details = []
 
@@ -261,55 +287,70 @@ for toml_file in toml_files:
     # validate video_annotation file
 
     # calculate the frames
-    total_frames = video_details['videofps'] * video_details['duration']
+    total_frames = int(video_details['videofps'] * video_details['duration'])
 
     frame_to_process = []
+    
+    # take a sample roughly every second, 0.5-1.5 second
+    # first offset is half the duration
+    
+    lowerbound_offset = int(video_details['videofps'] / 2)
+    upperbound_offset = int(video_details['videofps'] * 1.5)
+    
+    offset = random.randint(1,lowerbound_offset)
+    
+    frame_to_process.append(offset)
+    
+    while offset < total_frames:
+        offset += random.randint(lowerbound_offset,upperbound_offset)
+        frame_to_process.append(offset)
+        frame_details.append({'framenumber':offset})
+        
 
-    for i in range(int(video_details['duration'])):
-
-        frame = random.randint(1, video_details['videofps']) + i*video_details['videofps']
 
 
-        frame_to_process.append(frame)
-        frame_details.append({'framenumber':frame})
+### we probably want a way to multiprocess this..    
 
 # dump images using ffmpeg to a tmp folder
 
+ffmepg_path = r"C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\\"
 
 cmd_frames = ''
 for frame in frame_to_process:
     cmd_frames += f'eq(n\,{frame})+'
 cmd_frames = cmd_frames[:-1]
 
-cmd_start = f"ffmpeg -i {os.path.join(video_folder,video_details['filename'])} -vf select='"
+cmd_start = ffmepg_path + f"ffmpeg -i {os.path.join(video_folder,video_details['filename'])} -vf select='"
 cmd_end =  f"' -vsync vfr -q:v 2 {raw_image_folder+os.path.sep}%d.jpg"
 
 cmd_full = cmd_start + cmd_frames + cmd_end
 
 try:
-    subprocess.check_output(cmd_full, shell=True)
+    output = subprocess.check_output(cmd_full, shell=True)
 except Exception as e:
     logging.error(f"Error with ffmpeg command: {cmd_full}")
+    logging.error(f"{output}")
     raise
 
-jpeg_files = glob('*.jpg') # => need to be in order! | nt rly
+jpeg_files = glob(os.path.join(raw_image_folder,'*.jpg')) # => need to be in order! | nt rly
 
 resolution = video_details['resolution']
 
+previous_frame_hash = ''
+    
 for idx, jpeg_file in enumerate(jpeg_files):
 
-    previous_frame_hash = ''
 
 
     im = Image.open(jpeg_file)
 
     # check if frame is too similar to previous one
     # no wait can't do here, don't have the image
+    current_frame_hash = image_similarity_hash(im)
     if idx > 0:
-        current_frame_hash = image_similarity_hash(im)
         if current_frame_hash == previous_frame_hash:
             # delete image
-            os.remove(jpeg_file)
+#            os.remove(jpeg_file)
             continue
 
     # do the image modifications
@@ -368,6 +409,7 @@ for idx, jpeg_file in enumerate(jpeg_files):
     filenames = []
     # write a file with the hash as the filename
     filename_ori = hashlib.md5(im.tobytes()).hexdigest()
+    im.save(os.path.join(completed_image_folder,filename_ori+'.jpg')) # add path
     filenames.append(filename_ori)
 
     im2 = im.convert('HSV')
@@ -378,21 +420,21 @@ for idx, jpeg_file in enumerate(jpeg_files):
     im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
     im2 = im2.convert('RGB')
     filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
-    im2.save(filename_1 + '.jpg') # add path
+    im2.save(os.path.join(completed_image_folder,filename_1+'.jpg')) # add path
     filenames.append(filename_1)
 
     hue_skew = random.randint(108,148)
     im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
     im2 = im2.convert('RGB')
     filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
-    im2.save(filename_2 + '.jpg') # add path
+    im2.save(os.path.join(completed_image_folder,filename_2 + '.jpg')) # add path
     filenames.append(filename_2)
 
     hue_skew = random.randint(184,214)
     im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
     im2 = im2.convert('RGB')
     filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
-    im2.save(filename_3 + '.jpg') # add path
+    im2.save(os.path.join(completed_image_folder,filename_3 + '.jpg')) # add path
     filenames.append(filename_3)
 
     # log hash -> details
@@ -400,8 +442,6 @@ for idx, jpeg_file in enumerate(jpeg_files):
 
     previous_frame_hash = current_frame_hash
 
-    # rename the image
-    os.rename(jpeg_file, filename_ori + '.jpg')
 
     image_grouping.append(filenames)
 
@@ -409,9 +449,9 @@ for idx, jpeg_file in enumerate(jpeg_files):
 
 
 # move files to completed folder
-for filepath in glob(os.path.join(raw_image_folder,'*.jpg')):
-    path, file = os.path.split(filepath)
-    shutil.move(filepath, os.path.join(completed_image_folder, file))
+#for filepath in glob(os.path.join(raw_image_folder,'*.jpg')):
+#    path, file = os.path.split(filepath)
+#    shutil.move(filepath, os.path.join(completed_image_folder, file))
 
 # finally
 # dump image_grouping
