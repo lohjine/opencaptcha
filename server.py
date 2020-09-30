@@ -323,217 +323,217 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
 
 
 def gen_challenge_7_images(video_folder = os.path.join('challenges','7','videos'), ffmpeg_path = ''):
-    
+
     base_folder = os.path.join('tmp','challenge_7_image_gen')
     raw_image_folder = os.path.join(base_folder,'raw')
     completed_image_folder =  os.path.join(base_folder,'completed')
-    
+
     if ffmpeg_path:
         ffmpeg_path = os.path.join(ffmpeg_path, 'ffmpeg')
     else:
         ffmpeg_path = 'ffmpeg'
-        
+
     ffmpeg_path = r"C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\\ffmpeg"
-                
+
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
-    
+
     # ensure a clean start
     if os.path.exists(base_folder):
         shutil.rmtree(base_folder)
     os.mkdir(base_folder)
     os.mkdir(raw_image_folder)
     os.mkdir(completed_image_folder)
-    
+
     image_grouping = []
-    
+
     image_debug_trace = defaultdict(list)
-    
+
     ## probably want to multiprocess this..
     # but we do single process for now
     # == for each video
-    
+
     toml_files = glob(os.path.join(video_folder, '*.toml'))
-    
+
     frame_details = []
-    
+
     for toml_file in toml_files:
-    
+
         with open(toml_file, 'r') as f:
             video_details = toml.load(f)
-    
+
         # validate video_annotation file
-    
+
         # calculate the frames
         total_frames = int(video_details['videofps'] * video_details['duration'])
-    
+
         frame_to_process = []
-        
+
         # take a sample roughly every second, 0.5-1.5 second
         # first offset is half the duration
-        
+
         lowerbound_offset = int(video_details['videofps'] / 2)
         upperbound_offset = int(video_details['videofps'] * 1.5)
-        
+
         offset = random.randint(1,lowerbound_offset)
-        
+
         frame_to_process.append(offset)
-        
+
         while offset < total_frames:
             offset += random.randint(lowerbound_offset,upperbound_offset)
             frame_to_process.append(offset)
             frame_details.append({'framenumber':offset})
-            
-    
-        # dump images using ffmpeg to a tmp folder        
+
+
+        # dump images using ffmpeg to a tmp folder
         cmd_frames = ''
         for frame in frame_to_process:
             cmd_frames += f'eq(n\,{frame})+'
         cmd_frames = cmd_frames[:-1]
-        
+
         cmd_start = ffmpeg_path + f" -i {os.path.join(video_folder,video_details['filename'])} -vf select='"
         cmd_end =  f"' -vsync vfr -q:v 2 {raw_image_folder+os.path.sep}%d.jpg"
-        
+
         cmd_full = cmd_start + cmd_frames + cmd_end
-        
+
         try:
             _ = subprocess.check_output(cmd_full, shell=True, stderr=subprocess.STDOUT)
         except Exception as e:
             logging.error(f"Error with ffmpeg command: {cmd_full}")
             logging.error(f"{e.output}")
             continue
-        
-        jpeg_files = glob(os.path.join(raw_image_folder,'*.jpg')) 
-        
+
+        jpeg_files = glob(os.path.join(raw_image_folder,'*.jpg'))
+
         resolution = video_details['resolution']
-        
+
         previous_frame_hash = ''
-            
+
         for idx, jpeg_file in enumerate(jpeg_files):
-        
-        
+
+
             im = Image.open(jpeg_file)
-        
+
             # check if frame is too similar to previous one
             current_frame_hash = image_similarity_hash(im)
             if idx > 0:
                 if current_frame_hash == previous_frame_hash:
                     continue
-        
+
             # do the image modifications
             ## crop a random amount
             ## pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
             ## change lighting level
             ## add a light tint
-        
+
             # crop
             if resolution[0] > resolution[1]:
                 crop_amount_px = resolution[0] - resolution[1]
-        
+
                 crop_amount_px_additional = int(random.random() * 0.15 * resolution[1])
-        
+
                 # add up to 15% of image
                 crop_amount_px +=  crop_amount_px_additional
-        
+
                 # split the crop randomly from left and right
                 crop_split_left = int(random.random() * crop_amount_px)
                 crop_split_right = crop_amount_px - crop_split_left
-        
+
                 # split the crop randomly from top and bottom
                 crop_split_top = int(random.random() * crop_amount_px_additional)
                 crop_split_bottom = resolution[1] - (crop_amount_px_additional - crop_split_top)
-        
+
                 left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, crop_split_bottom
-        
+
                 im = im.crop((left, upper, right, lower))
-        
+
             else:
                 crop_amount_px = resolution[1] - resolution[0]
-        
+
                 crop_amount_px_additional = int(random.random() * 0.15 * resolution[0])
-        
+
                 # add up to 15% of image
                 crop_amount_px +=  crop_amount_px_additional
-        
+
                 # split the crop randomly from left and right
                 crop_split_top = int(random.random() * crop_amount_px)
                 crop_split_bottom = crop_amount_px - crop_split_top
-        
+
                 # split the crop randomly from top and bottom
                 crop_split_left = int(random.random() * crop_amount_px_additional)
                 crop_split_right = resolution[0] - (crop_amount_px_additional - crop_split_left)
-        
+
                 left, upper, right, lower =  crop_split_left, crop_split_top , resolution[0] - crop_split_right, crop_split_bottom
-        
+
                 im = im.crop((left, upper, right, lower))
-        
-        
+
+
             im = im.resize((150, 150), resample=4) # do not need high quality in downscaling
-        
+
             if random.random() > 0.5:
                 im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT) # very powerful in dodging certain CBIR, esp google image
-        
+
             filenames = []
             # write a file with the hash as the filename
             filename_ori = hashlib.md5(im.tobytes()).hexdigest()
             im.save(os.path.join(completed_image_folder,filename_ori+'.jpg'))
             filenames.append(filename_ori)
-        
+
             im2 = im.convert('HSV')
-        
+
             pixels = list(im2.getdata())
-        
+
             hue_skew = random.randint(42,72)
             im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
             im2 = im2.convert('RGB')
             filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_1+'.jpg'))
             filenames.append(filename_1)
-        
+
             hue_skew = random.randint(108,148)
             im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
             im2 = im2.convert('RGB')
             filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_2 + '.jpg'))
             filenames.append(filename_2)
-        
+
             hue_skew = random.randint(184,214)
             im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
             im2 = im2.convert('RGB')
             filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_3 + '.jpg'))
             filenames.append(filename_3)
-        
+
             # log hash -> details
             logging.debug(f"{video_details['filename']} , {frame_details[idx]['framenumber']}")
-        
+
             previous_frame_hash = current_frame_hash
-        
-        
+
+
             image_grouping.append(filenames)
-        
+
             image_debug_trace[video_details['filename']].extend(filenames)
-    
-    
+
+
     # move files to completed folder
     #for filepath in glob(os.path.join(raw_image_folder,'*.jpg')):
     #    path, file = os.path.split(filepath)
     #    shutil.move(filepath, os.path.join(completed_image_folder, file))
-    
+
     # finally
     # dump image_grouping
     with open(os.path.join(completed_image_folder,'image_grouping.pkl'),'wb') as f:
         pickle.dump(image_grouping, f)
-    
+
     served_dir_name = str(int(time.time()))
-    
+
     # dump image_debug_trace
     with open(os.path.join('logs',f'challenge_7_image_debug_trace_{served_dir_name}.pkl'),'wb') as f:
         pickle.dump(image_debug_trace, f)
-    
+
     # and move entire folder to challenge dir for serving
     shutil.move(completed_image_folder, os.path.join('challenges','7','images',served_dir_name))
-    
+
     # clean up directories
     shutil.rmtree(base_folder)
 
@@ -633,6 +633,16 @@ if __name__ == "__main__":
 
     schedule.every().hour.at(":00").do(update_ip_lists)
     schedule.every(10).minutes.do(clean_up_audio_challenges)
+
+    if config['captcha']['max_challenge_level'] >= 7:
+        schedule.every(int(config['captcha']['challenge_level_7_imagegen_interval'])).hour.do(gen_challenge_7_images)
+
+        # checks if latest generated image folder is still valid, else generate
+        challenge_7_generated_image_folders = os.listdir(os.path.join('challenges','7','images'))
+        challenge_7_generated_image_folders.sort()
+        if len(challenge_7_generated_image_folders) == 0 or \
+            int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
+            gen_challenge_7_images()
 
     print('Running...')
 
