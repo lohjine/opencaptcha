@@ -6,6 +6,7 @@ import time
 from glob import glob
 import subprocess
 import toml
+from pydub import AudioSegment
 
 token_length = 11
 site_key_length = 10
@@ -87,13 +88,13 @@ def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refres
             duration = None
             videofps = None
             resolution = None
-            
+
             for i in output:
                 if 'Duration: ' in i:
                     duration = i.split(',')[0].split(' ')[-1]
                     hour, minute, second = duration.split('.')[0].split(':')
                     duration = int(hour)*60*60 + int(minute)*60 + int(second) + int(duration.split('.')[-1])/100
-                    
+
                 if 'Stream' in i and 'Video' in i:
                     videofps = float(i.split(' fps,')[0].split(', ')[-1])
                     resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split('x')]
@@ -164,6 +165,34 @@ def check_ip_in_lists(ip, db_connection, penalties):
             break
 
     return penalty_added
+
+
+def match_target_amplitude(sound, target_dBFS):
+    change_in_dBFS = target_dBFS - sound.dBFS
+    return sound.apply_gain(change_in_dBFS)
+
+
+def normalize_audio_in_directory(directory, recursive=True, target_db=-24):
+    """
+    Normalizes all audio files in directory to target dB in-place.
+
+    """
+    audio_extensions = set(['mp3','wav','aac','ogg'])
+
+    files = glob(directory, recursive=recursive)
+
+    for file in files:
+        if os.path.isfile(file):
+
+            extension = os.path.split(file)[-1].split('.')[-1].lower()
+
+            if extension in audio_extensions:
+
+                sound = AudioSegment.from_file(file)
+
+                if abs(sound.dBFS - target_db) > 0.2: # only apply operation if significantly different from target_db
+                    normalized_sound = match_target_amplitude(sound, target_db)
+                    normalized_sound.export(file, format=extension)
 
 
 def validate_settings_ini():

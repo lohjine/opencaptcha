@@ -15,6 +15,7 @@ import pyttsx3
 from glob import glob
 import json
 import pickle
+from pydub import AudioSegment
 
 app = Blueprint('app', __name__)
 
@@ -136,7 +137,7 @@ def requestchallenge():
         challenge_level = int(config['captcha']['max_challenge_level'])
 
     min_time = time.time() + 1;challenge_level=7
-    
+
     print(challenge_level)
 
     try:
@@ -213,7 +214,54 @@ def requestchallenge():
         elif challenge_level >= 7:  # assume they will ocr/transcribe at this point
 
             if blind:
-                pass
+                # choose a random background audio file
+                background = random.choice(glob(os.path.join('challenges','7','audio','background','*')))
+                background = AudioSegment.from_file(background)
+
+
+                # choose a random offset out of 15 seconds
+                duration = background.duration_seconds
+                offset = random.random() * (duration-15)
+
+                background_cut = background[offset*1000:(offset+15)*1000]
+
+
+                ## choose random overlay timings
+
+                # first timing is between 1 and 2 seconds
+                timings = [random.random() + 1]
+
+                # then subsequent timings are random between 1.5 sec and 3.5 seconds after the previous timing
+                for i in range(4):
+                    timings.append(1.5 + random.random() * 2 + timings[-1])
+
+                # ensure that the last timings do not exceed the background sound
+                if timings[-1] >= 14:
+                    timings[-1] = 14
+                    if timings[-2] >= 13:
+                        timings[-2] -= 0.5
+
+                # choose random categories for the answers
+                categories = glob(os.path.join('challenges','7','audio','animals','*'))
+
+                answers = []
+                for i in range(5):
+                    answers.append(random.choice(categories))
+
+                # choose random files from the categories
+                answers_files = []
+                for answer in answers:
+                    answers_files.append(AudioSegment.from_file(random.choice(glob(os.path.join(answer,'*')))))
+
+                # overlay the sounds
+                final = background_cut
+                for idx, answer in enumerate(answers_files):
+                    final = final.overlay(answer, position=timings[idx]*1000)
+
+                filename = '7' + str(time.time())
+                final.export(os.path.join('challenges','audio',f"{filename}.mp3"), format="mp3")
+                answer = ' '.join(answers)
+
             else:
                 challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
@@ -221,23 +269,23 @@ def requestchallenge():
                 challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=False,
                                                                                      challenge_7_directory=challenge_7_info['directory'],
                                                                                      challenge_7_files=challenge_7_info['files'])
-                
+
                 if challenge_7_directory:
                     challenge_7_info['directory'] = challenge_7_directory
                     challenge_7_info['files'] = challenge_7_files
-                
+
                 # choose 3 random questions
                 questions = random.choices(challenge_7_info['files'], k=3)
-                
+
                 correct_answers = set([i[0] for i in questions])
-                
+
                 # select random options
                 # but including the correct first option
                 questions = [random.choices(i[1:], k=2) + [i[0]] for i in questions]
-                
+
                 for question in questions:
                     random.shuffle(question)
-                        
+
                 images = []
                 # choose randomly horizontal or vertical layout
                 if random.random() > 0.5:
@@ -249,14 +297,14 @@ def requestchallenge():
                     for i in range(3):
                         for question in questions:
                             images.append(question[i])
-                
+
                 answer = []
                 for idx, i in enumerate(images):
                     if i in correct_answers:
                         answer.append(idx)
-                        
+
                 challenge = challenge.replace('{{IMAGES}}', json.dumps(images))
-                
+
                 print(answer)
 
         elif challenge_level >= 8:  # assume they will do NN-ML at this point

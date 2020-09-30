@@ -100,6 +100,11 @@ Additional requirements for challenge level 7
 ```
 sudo apt install ffmpeg
 
+# Ensure that ffmpeg is added to PATH
+
+# Place suitable animal/background audio files in challenges/7/audio
+# A small set of audio files obtained from Zapsplat and Soundbible are provided.
+
 # Place videos in challenges/7/videos
 # Allow server.py to be executed and wait for it to generate challenge 7 images, before running flask_core.py
 ```
@@ -107,7 +112,7 @@ sudo apt install ffmpeg
 
 ## Todo
 
-* Implement challenges for higher difficulties (currently up to 6)
+* Implement challenges for higher difficulties (>= 8)
 * IP rate-limiting
 * More sophisticated bot detection techniques
 * Style elements to look nicer / UX
