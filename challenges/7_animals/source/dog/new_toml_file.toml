@@ -1,5 +1,0 @@
-bb = [ [ [ 1, 2,], [ 3, 4,],], [ [ 1, 2,], [ 3, 5,],],]
-filename = "2.mp4"
-duration = 60.2
-videofps = 24
-totalframes = 1440
