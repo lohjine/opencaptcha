@@ -260,7 +260,7 @@ def requestchallenge():
 
                 filename = '7' + str(time.time())
                 final.export(os.path.join('challenges','audio',f"{filename}.mp3"), format="mp3")
-                answer = ' '.join(answers)
+                answer = ' '.join([os.path.split(i)[-1] for i in answers])
 
             else:
                 challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
