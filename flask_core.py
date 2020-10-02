@@ -57,6 +57,9 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
 
     # check whether new directory
     images = os.listdir(os.path.join(dirname, 'challenges', '7', 'images'))
+    
+    if '.gitignore' in images:
+        images.remove('.gitignore')
 
     if len(images) == 0:
         raise ValueError('No available images for challenge 7, either set max_challenge_level = 6 in settings.ini, or run server.py to generate challenge 7 images.')
