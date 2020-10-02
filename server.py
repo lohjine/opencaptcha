@@ -634,7 +634,7 @@ if __name__ == "__main__":
         if '.gitignore' in challenge_7_generated_image_folders:
             challenge_7_generated_image_folders.remove('.gitignore')
         if len(challenge_7_generated_image_folders) == 0 or \
-                int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
+                int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 < time.time():
 
             logging.info('Generating challenge 7 images...')
             gen_challenge_7_images()
