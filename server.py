@@ -628,6 +628,8 @@ if __name__ == "__main__":
 
         # checks if latest generated image folder is still valid, else generate
         challenge_7_generated_image_folders = sorted(os.listdir(os.path.join('challenges', '7', 'images')))
+        if '.gitignore' in challenge_7_generated_image_folders:
+            challenge_7_generated_image_folders.remove('.gitignore')
         if len(challenge_7_generated_image_folders) == 0 or \
                 int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
                     
