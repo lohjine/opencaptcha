@@ -236,7 +236,7 @@ def requestchallenge():
                 challenge = challenge7_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
                 # choose a random background audio file
-                background = random.choice(glob(os.path.join('challenges', '7', 'audio', 'background', '*')))
+                background = random.choice(glob(os.path.join(dirname, 'challenges', '7', 'audio', 'background', '*')))
                 background = AudioSegment.from_file(background)
 
                 # choose a random offset out of 15 seconds
@@ -261,7 +261,7 @@ def requestchallenge():
                         timings[-2] -= 0.5
 
                 # choose random categories for the answers
-                categories = glob(os.path.join('challenges', '7', 'audio', 'animals', '*'))
+                categories = glob(os.path.join(dirname, 'challenges', '7', 'audio', 'animals', '*'))
 
                 answers = []
                 for i in range(5):
@@ -278,7 +278,7 @@ def requestchallenge():
                     final = final.overlay(answer, position=timings[idx] * 1000)
 
                 filename = '7' + str(time.time()) # append extra character so won't collide with audio from other challenges
-                final.export(os.path.join('challenges', 'audio', f"{filename}.mp3"), format="mp3")
+                final.export(os.path.join(dirname, 'challenges', 'audio', f"{filename}.mp3"), format="mp3")
                 answer = ' '.join([os.path.split(i)[-1] for i in answers])
 
                 webpath = 'challenges/audio/' + filename + '.mp3'
