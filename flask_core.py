@@ -250,9 +250,9 @@ def requestchallenge():
                 # first timing is between 1 and 2 seconds
                 timings = [random.random() + 1]
 
-                # then subsequent timings are random between 1.5 sec and 3.5 seconds after the previous timing
+                # then subsequent timings are random between 2 sec and 3.5 seconds after the previous timing
                 for i in range(4):
-                    timings.append(1.5 + random.random() * 2 + timings[-1])
+                    timings.append(2 + random.random() * 2 + timings[-1])
 
                 # ensure that the last timings do not exceed the background sound
                 if timings[-1] >= 14:

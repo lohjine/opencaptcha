@@ -6,6 +6,8 @@ from opencaptcha_lib import normalize_audio_in_directory
 
 print('Running normalization...')
 
-normalize_audio_in_directory(os.path.join('challenges','7','audio','animals'))
+normalize_audio_in_directory(os.path.join('challenges','7','audio','animals'), target_db=-27)
+
+normalize_audio_in_directory(os.path.join('challenges','7','audio','background'), target_db=-30)
 
 print('Normalization complete!')
