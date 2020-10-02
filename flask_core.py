@@ -195,7 +195,7 @@ def requestchallenge():
                 challenge = challenge6_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
                 a = random.randint(0, 49)
-                b = random.randint(0, 49)
+                b = random.randint(0, 9)
 
                 answer = str(a + b)
 
