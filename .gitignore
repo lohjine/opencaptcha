@@ -134,7 +134,6 @@ challenges/audio/*.mp3
 old/
 trash.py
 redis-stable/
-*.mp4
 challenges/7/images/
 trash/
 logs/
