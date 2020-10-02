@@ -638,7 +638,7 @@ if __name__ == "__main__":
 
             logging.info('Generating challenge 7 images...')
             gen_challenge_7_images()
-            logging.info('Generated challenge 7 images...')
+            logging.info('Generated challenge 7 images')
 
     print('Running...')
 
