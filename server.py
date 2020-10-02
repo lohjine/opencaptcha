@@ -5,10 +5,18 @@ import configparser
 import os
 import random
 import string
-from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, validate_settings_ini
+from opencaptcha_lib import DBconnector, site_secret_length, site_key_length, validate_settings_ini, image_similarity_hash
 import gzip
 from glob import glob
 import urllib.request
+import shutil
+import toml
+from collections import defaultdict
+import subprocess
+import PIL
+from PIL import Image
+import hashlib
+import pickle
 
 # sqlite
 # - no need additional service
@@ -20,8 +28,6 @@ import urllib.request
 # - additional service
 # - easy to move to new server
 # - faster?
-
-# consider wiki block list?
 
 
 opener = urllib.request.build_opener()
@@ -66,10 +72,10 @@ def update_vpn_ips(force=False):
     """
 
     vpn_ipv4_endpoint = 'https://raw.githubusercontent.com/ejrv/VPNs/master/vpn-ipv4.txt'  # for commercial & datacenter, not very updated
-    firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset'
-    
+#    firehol_proxies_endpoint = 'https://iplists.firehol.org/files/firehol_proxies.netset' # too many IPs, requires >1GB ram on server
+
     update = False
-    
+
     retrieve_vpn_ipv4 = False
     if os.path.exists('db/vpn-ipv4.txt'):
         modified_time = os.lstat('db/vpn-ipv4.txt').st_mtime
@@ -116,9 +122,6 @@ def update_vpn_ips(force=False):
 #        firehol_proxies = [i for i in firehol_proxies if i[0] != '#']
 
 #        transformed_ipnets = transform_ipnet_strings(firehol_proxies, transformed_ipnets)
-        # Ideally, we should use ipaddress library to combine ip address ranges, but the memory usage blows up to GBs
-        # Instead, we do a naive set combination, which only takes 200MB ram.
-        # Efficiency loss vs ipaddress handling = (1630895 - 1497613) / 1497613 * 100 = 8.9%
 
         db_connection.set_set('vpn_ips', transformed_ipnets)
         db_connection.set_value('vpn_ips_updated', str(int(time.time())))
@@ -239,6 +242,13 @@ def update_ip_blacklists(force=False):
 
 def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
     """
+    Creates a set of ip strings for ip-checking purposes.
+
+    # Ideally, we should use ipaddress library to combine overlapping ip address ranges from multiple sources,
+    # but the memory usage blows up to GBs
+    # Instead, we do a naive set combination, which only takes 200MB ram.
+    # Efficiency loss vs ipaddress handling for vpn_ips examples = (1630895 - 1497613) / 1497613 * 100 = 8.9%
+
     Converts list of ipnet strings (x.x.x.x/x) to a set of transformed ipnet strings that fulfils criteria:
         - /25 to /32 are expanded to /32 equivalents
         - /17 to /24 are expanded to /24 equivalents
@@ -246,6 +256,7 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
         - /8 and below are dropped
 
     Assumes subnetmask-less strings to be /32
+
 
     Args:
         ipnets (list): list of ipnet strings
@@ -306,6 +317,223 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
     return transformed_ipnets
 
 
+def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'), ffmpeg_path=''):
+    """
+    Generates challenge 7 images from videos
+
+
+    Args:
+        video_folder (str): Filepath where source videos are located
+        ffmpeg_path (str): Path for ffmpeg, leave blank if already on path.
+
+    Outputs:
+        Creates a directory named with current unix time, located in opencaptcha/challenges/7/images,
+        containing images derived from source videos.
+    """
+
+    base_folder = os.path.join('tmp', 'challenge_7_image_gen')
+    raw_image_folder = os.path.join(base_folder, 'raw')
+    completed_image_folder = os.path.join(base_folder, 'completed')
+
+    if ffmpeg_path:
+        ffmpeg_path = os.path.join(ffmpeg_path, 'ffmpeg')
+    else:
+        ffmpeg_path = 'ffmpeg'
+
+    if not os.path.exists('tmp'):
+        os.mkdir('tmp')
+
+    # ensure a clean start
+    if os.path.exists(base_folder):
+        shutil.rmtree(base_folder)
+    os.mkdir(base_folder)
+    os.mkdir(raw_image_folder)
+    os.mkdir(completed_image_folder)
+
+    image_grouping = []
+
+    image_debug_trace = defaultdict(list)
+
+    # consider multiprocess this in future
+
+    toml_files = glob(os.path.join(video_folder, '*.toml'))
+
+    frame_details = []
+
+    for toml_file in toml_files:
+
+        with open(toml_file, 'r') as f:
+            video_details = toml.load(f)
+
+        # validate video_annotation file
+
+        # calculate the frames
+        total_frames = int(video_details['videofps'] * video_details['duration'])
+
+        frame_to_process = []
+
+        # take a sample roughly every second, 0.5-1.5 second
+        # first offset is half the duration
+
+        lowerbound_offset = int(video_details['videofps'] / 2)
+        upperbound_offset = int(video_details['videofps'] * 1.5)
+
+        offset = random.randint(1, lowerbound_offset)
+
+        frame_to_process.append(offset)
+
+        while offset < total_frames:
+            offset += random.randint(lowerbound_offset, upperbound_offset)
+            frame_to_process.append(offset)
+            frame_details.append({'framenumber': offset})
+
+        # dump images using ffmpeg to a tmp folder
+        cmd_frames = ''
+        for frame in frame_to_process:
+            cmd_frames += rf'eq(n\,{frame})+'
+        cmd_frames = cmd_frames[:-1]
+
+        cmd_start = ffmpeg_path + f" -i {os.path.join(video_folder,video_details['filename'])} -vf select='"
+        cmd_end = f"' -vsync vfr -q:v 2 {raw_image_folder+os.path.sep}%d.jpg"
+
+        cmd_full = cmd_start + cmd_frames + cmd_end
+
+        try:
+            _ = subprocess.check_output(cmd_full, shell=True, stderr=subprocess.STDOUT)
+        except Exception as e:
+            logging.error(f"Error with ffmpeg command: {cmd_full}")
+            logging.error(f"{e.output}")
+            continue
+
+        jpeg_files = glob(os.path.join(raw_image_folder, '*.jpg'))
+
+        resolution = video_details['resolution']
+
+        previous_frame_hash = ''
+
+        for idx, jpeg_file in enumerate(jpeg_files):
+
+            im = Image.open(jpeg_file)
+
+            # check if frame is too similar to previous one
+            current_frame_hash = image_similarity_hash(im)
+            if idx > 0:
+                if current_frame_hash == previous_frame_hash:
+                    continue
+
+            # do the image modifications
+            # crop a random amount
+            # pad a random border (with a light pattern) | NVM, crop should be good enough, and borders can be detected..
+            # change lighting level
+            # add a tint?
+
+            # crop
+            if resolution[0] > resolution[1]:
+                crop_amount_px = resolution[0] - resolution[1]
+
+                crop_amount_px_additional = int(random.random() * 0.15 * resolution[1])
+
+                # add up to 15% of image
+                crop_amount_px += crop_amount_px_additional
+
+                # split the crop randomly from left and right
+                crop_split_left = int(random.random() * crop_amount_px)
+                crop_split_right = crop_amount_px - crop_split_left
+
+                # split the crop randomly from top and bottom
+                crop_split_top = int(random.random() * crop_amount_px_additional)
+                crop_split_bottom = resolution[1] - (crop_amount_px_additional - crop_split_top)
+
+                left, upper, right, lower = crop_split_left, crop_split_top, resolution[0] - crop_split_right, crop_split_bottom
+
+                im = im.crop((left, upper, right, lower))
+
+            else:
+                crop_amount_px = resolution[1] - resolution[0]
+
+                crop_amount_px_additional = int(random.random() * 0.15 * resolution[0])
+
+                # add up to 15% of image
+                crop_amount_px += crop_amount_px_additional
+
+                # split the crop randomly from left and right
+                crop_split_top = int(random.random() * crop_amount_px)
+                crop_split_bottom = crop_amount_px - crop_split_top
+
+                # split the crop randomly from top and bottom
+                crop_split_left = int(random.random() * crop_amount_px_additional)
+                crop_split_right = resolution[0] - (crop_amount_px_additional - crop_split_left)
+
+                left, upper, right, lower = crop_split_left, crop_split_top, resolution[0] - crop_split_right, crop_split_bottom
+
+                im = im.crop((left, upper, right, lower))
+
+            im = im.resize((126, 126), resample=4)  # do not need high quality in downscaling
+
+            if random.random() > 0.5:
+                im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT)  # very powerful in dodging certain CBIR, esp google image
+
+            filenames = []
+            # write a file with the hash as the filename
+            filename_ori = hashlib.md5(im.tobytes()).hexdigest()
+            im.save(os.path.join(completed_image_folder, filename_ori + '.jpg'))
+            filenames.append(filename_ori + '.jpg')
+
+            im2 = im.convert('HSV')
+
+            pixels = list(im2.getdata())
+
+            hue_skew = random.randint(42, 72)
+            im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
+            im2 = im2.convert('RGB')
+            filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
+            im2.save(os.path.join(completed_image_folder, filename_1 + '.jpg'))
+            filenames.append(filename_1 + '.jpg')
+
+            hue_skew = random.randint(108, 148)
+            im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
+            im2 = im2.convert('RGB')
+            filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
+            im2.save(os.path.join(completed_image_folder, filename_2 + '.jpg'))
+            filenames.append(filename_2 + '.jpg')
+
+            hue_skew = random.randint(184, 214)
+            im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
+            im2 = im2.convert('RGB')
+            filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
+            im2.save(os.path.join(completed_image_folder, filename_3 + '.jpg'))
+            filenames.append(filename_3 + '.jpg')
+
+            # log hash -> details
+            logging.debug(f"{video_details['filename']} , {frame_details[idx]['framenumber']}")
+
+            previous_frame_hash = current_frame_hash
+
+            image_grouping.append(filenames)
+
+            image_debug_trace[video_details['filename']].extend(filenames)
+
+    # finally
+    # dump image_grouping
+    with open(os.path.join(completed_image_folder, 'image_grouping.pkl'), 'wb') as f:
+        pickle.dump(image_grouping, f)
+
+    served_dir_name = str(int(time.time()))
+
+    # dump image_debug_trace
+    with open(os.path.join('logs', f'challenge_7_image_debug_trace_{served_dir_name}.pkl'), 'wb') as f:
+        pickle.dump(image_debug_trace, f)
+
+    # and move entire folder to challenge dir for serving
+    destination_folder = os.path.join('challenges', '7', 'images', served_dir_name)
+    shutil.move(completed_image_folder, destination_folder)
+
+    # clean up directories
+    shutil.rmtree(base_folder)
+    
+    logging.info(f'Completed generation of challenge 7 images at: {destination_folder}')
+
+
 def update_ip_lists(force=False):
 
     update_ip_blacklists(force=force)
@@ -316,18 +544,12 @@ def update_ip_lists(force=False):
 
 
 def clean_up_audio_challenges():
+    """Deletes audio challenges that are more than 5 minutes old."""
     current_time = time.time()
     for i in glob(os.path.join('challenges', 'audio', '*')):
         if current_time - os.lstat(i).st_mtime > 5 * 60:
             os.remove(i)
 
-    return True
-
-
-def generate_animal_images():
-    # create a new tmp folder, populate it, then move to the correct folder, then delete if == 3 folders
-
-    # https://github.com/desirepath41/visualCaptcha/issues/24
     return True
 
 
@@ -400,6 +622,18 @@ if __name__ == "__main__":
 
     schedule.every().hour.at(":00").do(update_ip_lists)
     schedule.every(10).minutes.do(clean_up_audio_challenges)
+
+    if config['captcha']['max_challenge_level'] >= 7:
+        schedule.every(int(config['captcha']['challenge_level_7_imagegen_interval'])).hour.do(gen_challenge_7_images)
+
+        # checks if latest generated image folder is still valid, else generate
+        challenge_7_generated_image_folders = sorted(os.listdir(os.path.join('challenges', '7', 'images')))
+        if len(challenge_7_generated_image_folders) == 0 or \
+                int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
+                    
+            logging.info('Generating challenge 7 images...')
+            gen_challenge_7_images()
+            logging.info('Generated challenge 7 images...')
 
     print('Running...')
 

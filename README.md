@@ -22,6 +22,10 @@ OpenCaptcha is an open source, user-friendly, privacy-focused captcha. Currently
 You may try out the captcha at [https://opencaptcha.lohjine.com](https://opencaptcha.lohjine.com)
 
 
+## Captcha concepts
+
+See [concepts.md](concepts.md)
+
 ## Installation (using hosted service)
 
 Current available hosted services:
@@ -29,7 +33,7 @@ Current available hosted services:
 
 1. Register at hosted service to obtain a SITE-KEY and SITE_SECRET, as well as configure settings.
 
-2. Add the two following elements to the page that you want to protect (e.g. account creation)
+2. Add the following two elements to the page/form that you want to protect (e.g. account creation)
 
 ```
 <head>
@@ -67,7 +71,7 @@ cd opencaptcha
 vim settings.ini
 vim redis.conf
 
-# (Recommended) Set up python virtualenv and activate it
+# (Optional, Recommended) Set up python virtualenv and activate it
 pip3 install virtualenv && virtualenv venv
 source venv/bin/activate
 
@@ -85,13 +89,35 @@ python3 server.py &
 
 # Serve app in flask_core.py using your web application stack
 # For a wsgi/nginx example, refer to https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uswgi-and-nginx-on-ubuntu-18-04
+# Or in dev mode, run:
+# python3 flask_core.py
 
 # Proceed with step 2 of Installation section above
 ```
 
+Additional requirements for challenge level 7
+
+```
+sudo apt install ffmpeg
+
+# Ensure that ffmpeg is added to PATH
+
+# Place suitable animal/background audio files in challenges/7/audio
+# A small set of video files obtained from Pexels are provided.
+# A small set of audio files obtained from Zapsplat and Freesound are provided.
+
+# Pre-process challenge 7 videos/audio
+python scripts/preprocess_challenge_7.py
+python scripts/preprocess_audio_challenge_7.py
+
+# Place videos in challenges/7/videos
+# Allow server.py to be executed and wait for it to generate challenge 7 images, before running flask_core.py
+```
+
+
 ## Todo
 
-* Implement challenges for higher difficulties (currently up to 6)
+* Implement challenges for higher difficulties (>= 8)
 * IP rate-limiting
 * More sophisticated bot detection techniques
 * Style elements to look nicer / UX
@@ -99,6 +125,6 @@ python3 server.py &
 
 ## Contributing
 
-We welcome discussions/feedback on the usefulness of current challenges and suggestions for improvements or more challenges. Please open an issue for it.
+Discussions/feedback on the usefulness of current challenges and suggestions for improvements or more challenges are welcomed. Please open an issue for it.
 
-If you maintain a website with sizable traffic and are willing to live-test dev changes, please do reach out!
+If you maintain a website with sizable bot traffic and are willing to test dev changes, please do reach out!

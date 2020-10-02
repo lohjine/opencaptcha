@@ -4,3 +4,5 @@ sqlitedict
 schedule
 pillow
 pyttsx3==2.90
+toml
+pydub

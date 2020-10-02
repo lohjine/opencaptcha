@@ -14,6 +14,8 @@ from io import BytesIO
 import pyttsx3
 from glob import glob
 import json
+import pickle
+from pydub import AudioSegment
 
 app = Blueprint('app', __name__)
 
@@ -42,9 +44,49 @@ with open(os.path.join(dirname, 'challenges', 'copywordchallenge_image.js'), 'r'
     challenge6 = f.read()
 with open(os.path.join(dirname, 'challenges', 'copywordchallenge_audio.js'), 'r') as f:
     challenge6_audio = f.read()
-with open(os.path.join(dirname, 'challenges', 'animalchallenge.js'), 'r') as f:
+with open(os.path.join(dirname, 'challenges', 'colorchallenge.js'), 'r') as f:
     challenge7 = f.read()
-challenge7_animals = os.listdir(os.path.join(dirname, 'challenges', '7_animals', 'source'))
+with open(os.path.join(dirname, 'challenges', 'animalchallenge_audio.js'), 'r') as f:
+    challenge7_audio = f.read()
+
+
+def update_challenge_7_images(first_run=False, challenge_7_directory=None, challenge_7_files=None):
+    """
+    Prepares for serving challenge_7_images. Checks for updates to challenge_7_images and replaces current files with the newer ones.
+    """
+
+    # check whether new directory
+    images = os.listdir(os.path.join(dirname, 'challenges', '7', 'images'))
+
+    if len(images) == 0:
+        raise ValueError('No available images for challenge 7, either set max_challenge_level = 6 in settings.ini, or run server.py to generate challenge 7 images.')
+
+    # Move the latest challenge_7_directory to end of list
+    images.sort()
+
+    if first_run:
+        with open(os.path.join(dirname, 'challenges', '7', 'images', images[-1], 'image_grouping.pkl'), 'rb') as f:
+            challenge_7_files = pickle.load(f)
+
+        challenge_7_directory = images[-1]
+        return challenge_7_directory, challenge_7_files
+    else:
+        # Update if a newer challenge_7_directory is found
+        if images[-1] > challenge_7_directory:
+            with open(os.path.join(dirname, 'challenges', '7', 'images', images[-1], 'image_grouping.pkl'), 'rb') as f:
+                challenge_7_files = pickle.load(f)
+
+            challenge_7_directory = images[-1]
+
+            return challenge_7_directory, challenge_7_files
+        else:
+            return None, None
+
+
+if int(config['captcha']['max_challenge_level']) >= 7:
+    challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=True)
+
+    challenge_7_info = {'directory': challenge_7_directory, 'files': challenge_7_files}
 
 
 @app.route('/<path:text>')
@@ -65,6 +107,22 @@ def audio_challenge(text):
     # both points to opencaptcha_website/app/opencaptcha
     # absolute path fixes the weird behaviour of send_from_directory
     return send_from_directory(os.path.join(app.root_path, 'challenges', 'audio'), text)
+
+
+@app.route('/challenges/image/<path:text>')
+def image_challenge(text):
+    # send_from_directory works weirdly with nested blueprints, causing the base path to be opencaptcha_website/app
+    # app.root_path is the same as dirname, except that app.root_path is absolute path
+    # both points to opencaptcha_website/app/opencaptcha
+    # absolute path fixes the weird behaviour of send_from_directory
+
+    directory = request.args.get('directory')
+
+    if not directory.isdigit():
+        # only allow numeric directories to prevent security violation by accepting ".." as input
+        return abort(400)
+
+    return send_from_directory(os.path.join(app.root_path, 'challenges', '7', 'images', directory), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -92,6 +150,9 @@ def requestchallenge():
     penalty_added = check_ip_in_lists(request.remote_addr, db_connection, site_details)
 
     challenge_level += penalty_added
+
+    if challenge_level > int(config['captcha']['max_challenge_level']):
+        challenge_level = int(config['captcha']['max_challenge_level'])
 
     min_time = time.time() + 1
 
@@ -128,7 +189,7 @@ def requestchallenge():
             answer = random.choice(wordlist)
             challenge = challenge.replace('{{WORD}}', answer)
 
-        elif challenge_level >= 6:
+        elif challenge_level == 6:
 
             if blind:
                 challenge = challenge6_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -143,7 +204,7 @@ def requestchallenge():
                 diskpath = os.path.join(dirname, 'challenges', 'audio', filename)
                 webpath = 'challenges/audio/' + filename
 
-                engine = pyttsx3.init() # not possible to hold this object for multiple threads in prod
+                engine = pyttsx3.init()  # not possible to hold this object for multiple threads in prod
                 engine.setProperty('rate', 110)
                 engine.save_to_file(f'What is {a} plus {b}', diskpath)
                 engine.runAndWait()
@@ -166,51 +227,107 @@ def requestchallenge():
 
                 challenge = challenge.replace('{{IMG}}', img_str)
 
-        elif challenge_level >= 7:  # assume they will ocr/transcribe at this point
-            # might want to do animal images / sounds
-            # but open source how are we going to permutate this?! - maybe frames from dog videos are better!!
-            # take inspiration from WAIT on how to make reversing it hard!
-            # for sounds, i am not expert, but applying background music and noise should make it hard to match up to originals!
+        elif challenge_level >= 7:
 
             if blind:
-                pass
+                challenge = challenge7_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
+
+                # choose a random background audio file
+                background = random.choice(glob(os.path.join('challenges', '7', 'audio', 'background', '*')))
+                background = AudioSegment.from_file(background)
+
+                # choose a random offset out of 15 seconds
+                duration = background.duration_seconds
+                offset = random.random() * (duration - 15)
+
+                background_cut = background[offset * 1000:(offset + 15) * 1000]
+
+                # choose random overlay timings
+
+                # first timing is between 1 and 2 seconds
+                timings = [random.random() + 1]
+
+                # then subsequent timings are random between 1.5 sec and 3.5 seconds after the previous timing
+                for i in range(4):
+                    timings.append(1.5 + random.random() * 2 + timings[-1])
+
+                # ensure that the last timings do not exceed the background sound
+                if timings[-1] >= 14:
+                    timings[-1] = 14
+                    if timings[-2] >= 13:
+                        timings[-2] -= 0.5
+
+                # choose random categories for the answers
+                categories = glob(os.path.join('challenges', '7', 'audio', 'animals', '*'))
+
+                answers = []
+                for i in range(5):
+                    answers.append(random.choice(categories))
+
+                # choose random files from the categories
+                answers_files = []
+                for answer in answers:
+                    answers_files.append(AudioSegment.from_file(random.choice(glob(os.path.join(answer, '*')))))
+
+                # overlay the sounds
+                final = background_cut
+                for idx, answer in enumerate(answers_files):
+                    final = final.overlay(answer, position=timings[idx] * 1000)
+
+                filename = '7' + str(time.time()) # append extra character so won't collide with audio from other challenges
+                final.export(os.path.join('challenges', 'audio', f"{filename}.mp3"), format="mp3")
+                answer = ' '.join([os.path.split(i)[-1] for i in answers])
+
+                webpath = 'challenges/audio/' + filename + '.mp3'
+
+                challenge = challenge.replace('{{AUDIO}}', webpath)
+
             else:
-                # choose a random answer
-                correct_animal = random.choice(challenge7_animals)
-                wrong_animals = challenge7_animals.copy()
-                wrong_animals.remove(correct_animal)
-                number_matching = random.randint(2, 8)
+                challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
 
-                answer = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-                random.shuffle(answer)
-                answer = answer[:number_matching]
+                # check for updates
+                challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=False,
+                                                                                     challenge_7_directory=challenge_7_info['directory'],
+                                                                                     challenge_7_files=challenge_7_info['files'])
 
-                # look for the latest folder to sample from
-                # do it individually for each animal to prevent race conditions
-                latest_folders = {}
+                if challenge_7_directory:
+                    challenge_7_info['directory'] = challenge_7_directory
+                    challenge_7_info['files'] = challenge_7_files
 
-                for i in challenge7_animals:
-                    available_folders = sorted(
-                        os.listdir(
-                            os.path.join(
-                                dirname,
-                                'challenges',
-                                '7_animals',
-                                'images',
-                                challenge7_animals[0])))
-                    latest_folders[i] = glob(os.path.join(dirname, 'challenges', '7_animals', 'images', i, available_folders[-1], '*'))
+                # choose 3 random questions
+                questions = random.sample(challenge_7_info['files'], k=3)
+
+                correct_answers = set([i[0] for i in questions])
+
+                # select random options
+                # but including the correct first option
+                questions = [random.sample(i[1:], k=2) + [i[0]] for i in questions]
+
+                for question in questions:
+                    random.shuffle(question)
 
                 images = []
-                for i in range(10):
-                    if i in answer:
-                        images.append(random.sample(latest_folders[correct_animal], 1))
-                    else:
-                        wrong_animal = random.choice(wrong_animals)
-                        images.append(random.sample(latest_folders[wrong_animal], 1))
+                # choose randomly horizontal or vertical layout
+                if random.random() > 0.5:
+                    # horizontal
+                    for question in questions:
+                        images.extend(question)
+                else:
+                    # vertical
+                    for i in range(3):
+                        for question in questions:
+                            images.append(question[i])
 
-                challenge.replace({{images}}, json.dumps(images))
+                answer = []
+                for idx, i in enumerate(images):
+                    if i in correct_answers:
+                        answer.append(idx)
 
-        elif challenge_level >= 8:  # assume they will do basic ML at this point
+                answer = ','.join([str(i) for i in answer])  # stringify into js-like format
+
+                challenge = challenge.replace('{{IMAGES}}', json.dumps(images)).replace('{{IMAGE_DIR}}', json.dumps(challenge_7_info['directory']))
+
+        elif challenge_level >= 8:  # assume they will do NN-ML at this point
             pass
         elif challenge_level >= 9:
             pass
@@ -218,11 +335,11 @@ def requestchallenge():
             pass
         # record challenge to db
         db_connection.set_dict(challenge_id, {'site_secret': site_secret,
-                                         'expires': int(time.time()) + 5 * 60,
-                                         'ip': request.remote_addr,
-                                         'answer': answer,
-                                         'min_time': min_time},
-                          expire=300)
+                                              'expires': int(time.time()) + 5 * 60,
+                                              'ip': request.remote_addr,
+                                              'answer': answer,
+                                              'min_time': min_time},
+                               expire=300)
         return challenge
     except Exception as e:
         logging.error(f"Challenge generation failed: {e}")
@@ -267,9 +384,9 @@ def solvechallenge():
 
         db_connection.delete(challenge_id)
         db_connection.set_dict(token, {'site_secret': site_secret,
-                                  'expires': int(time.time()) + 60 * 2,
-                                  'ip': request.remote_addr},
-                          expire=120)
+                                       'expires': int(time.time()) + 60 * 2,
+                                       'ip': request.remote_addr},
+                               expire=120)
 
         return jsonify({'success': True, 'token': token})
     except BaseException as e:
@@ -300,11 +417,11 @@ def verify():
     if float(token_details['expires']) < time.time():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
-# we delete tokens immediately once they are used
+# We currently delete tokens immediately once they are used
 #    if token_details['used'] == True:
 #        return jsonify({'success': False, 'error': 'Response token has already been used'})
 
-# we do not check IP because of dynamic IP
+# We do not check IP because of dynamic IP
 #    if ip is not None:
 #        if ip != token_details['ip']:
 #            return jsonify({'success':False,'error':'IP does not match'})
@@ -320,6 +437,14 @@ def verify():
 @app.route('/robots.txt')
 def robots():
     return send_from_directory(os.path.join(app.root_path, 'static', 'txt'), 'robots.txt')
+
+
+@app.route('/test', methods=['GET', 'POST'])
+def main():
+    if request.method == 'POST':
+        print(request.form)
+
+    return send_from_directory(os.path.join(app.root_path, 'static', 'js'), 'test.html')
 
 
 if __name__ == '__main__':
