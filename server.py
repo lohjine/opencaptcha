@@ -624,7 +624,7 @@ if __name__ == "__main__":
     schedule.every(10).minutes.do(clean_up_audio_challenges)
 
     if int(config['captcha']['max_challenge_level']) >= 7:
-        schedule.every(int(config['captcha']['challenge_level_7_imagegen_interval'])).hour.do(gen_challenge_7_images)
+        schedule.every(int(config['captcha']['challenge_level_7_imagegen_interval'])).hours.do(gen_challenge_7_images)
 
         # checks if latest generated image folder is still valid, else generate
         challenge_7_generated_image_folders = sorted(os.listdir(os.path.join('challenges', '7', 'images')))
