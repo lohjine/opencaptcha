@@ -333,8 +333,6 @@ def gen_challenge_7_images(video_folder = os.path.join('challenges','7','videos'
     else:
         ffmpeg_path = 'ffmpeg'
 
-    ffmpeg_path = r"C:\Users\ACTUS\Desktop\pyscripts\opencaptcha\challenges\7_animals\source\dog\\ffmpeg"
-
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
 
@@ -468,7 +466,7 @@ def gen_challenge_7_images(video_folder = os.path.join('challenges','7','videos'
                 im = im.crop((left, upper, right, lower))
 
 
-            im = im.resize((150, 150), resample=4) # do not need high quality in downscaling
+            im = im.resize((126, 126), resample=4) # do not need high quality in downscaling
 
             if random.random() > 0.5:
                 im = im.transpose(PIL.Image.FLIP_LEFT_RIGHT) # very powerful in dodging certain CBIR, esp google image
@@ -477,7 +475,7 @@ def gen_challenge_7_images(video_folder = os.path.join('challenges','7','videos'
             # write a file with the hash as the filename
             filename_ori = hashlib.md5(im.tobytes()).hexdigest()
             im.save(os.path.join(completed_image_folder,filename_ori+'.jpg'))
-            filenames.append(filename_ori)
+            filenames.append(filename_ori +'.jpg')
 
             im2 = im.convert('HSV')
 
@@ -488,21 +486,21 @@ def gen_challenge_7_images(video_folder = os.path.join('challenges','7','videos'
             im2 = im2.convert('RGB')
             filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_1+'.jpg'))
-            filenames.append(filename_1)
+            filenames.append(filename_1 +'.jpg')
 
             hue_skew = random.randint(108,148)
             im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
             im2 = im2.convert('RGB')
             filename_2 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_2 + '.jpg'))
-            filenames.append(filename_2)
+            filenames.append(filename_2 +'.jpg')
 
             hue_skew = random.randint(184,214)
             im2.putdata([((x[0]+hue_skew)%256, x[1], x[2])  for x in pixels])
             im2 = im2.convert('RGB')
             filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
             im2.save(os.path.join(completed_image_folder,filename_3 + '.jpg'))
-            filenames.append(filename_3)
+            filenames.append(filename_3 +'.jpg')
 
             # log hash -> details
             logging.debug(f"{video_details['filename']} , {frame_details[idx]['framenumber']}")

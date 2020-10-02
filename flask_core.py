@@ -46,6 +46,8 @@ with open(os.path.join(dirname, 'challenges', 'copywordchallenge_audio.js'), 'r'
     challenge6_audio = f.read()
 with open(os.path.join(dirname, 'challenges', 'colorchallenge.js'), 'r') as f:
     challenge7 = f.read()
+with open(os.path.join(dirname, 'challenges', 'animalchallenge_audio.js'), 'r') as f:
+    challenge7_audio = f.read()
 
 
 
@@ -105,6 +107,23 @@ def audio_challenge(text):
     # both points to opencaptcha_website/app/opencaptcha
     # absolute path fixes the weird behaviour of send_from_directory
     return send_from_directory(os.path.join(app.root_path, 'challenges', 'audio'), text)
+
+
+@app.route('/challenges/image/<path:text>')
+def image_challenge(text):
+    # send_from_directory works weirdly with nested blueprints, causing the base path to be opencaptcha_website/app
+    # app.root_path is the same as dirname, except that app.root_path is absolute path
+    # both points to opencaptcha_website/app/opencaptcha
+    # absolute path fixes the weird behaviour of send_from_directory
+    
+    directory = request.args.get('directory')
+    
+    if not directory.isdigit():
+        # only allow numeric directories to prevent security violation by accepting ".." as input
+        return abort(400)
+    
+    return send_from_directory(os.path.join(app.root_path, 'challenges', '7', 'images',directory), text)
+
 
 
 @app.route('/request', methods=['POST'])
@@ -214,6 +233,8 @@ def requestchallenge():
         elif challenge_level >= 7:  # assume they will ocr/transcribe at this point
 
             if blind:
+                challenge = challenge7_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
+                
                 # choose a random background audio file
                 background = random.choice(glob(os.path.join('challenges','7','audio','background','*')))
                 background = AudioSegment.from_file(background)
@@ -261,6 +282,11 @@ def requestchallenge():
                 filename = '7' + str(time.time())
                 final.export(os.path.join('challenges','audio',f"{filename}.mp3"), format="mp3")
                 answer = ' '.join([os.path.split(i)[-1] for i in answers])
+                
+                webpath = 'challenges/audio/' + filename + '.mp3'
+                
+                challenge = challenge.replace('{{AUDIO}}', webpath)
+                
 
             else:
                 challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -275,13 +301,13 @@ def requestchallenge():
                     challenge_7_info['files'] = challenge_7_files
 
                 # choose 3 random questions
-                questions = random.choices(challenge_7_info['files'], k=3)
+                questions = random.sample(challenge_7_info['files'], k=3)
 
                 correct_answers = set([i[0] for i in questions])
 
                 # select random options
                 # but including the correct first option
-                questions = [random.choices(i[1:], k=2) + [i[0]] for i in questions]
+                questions = [random.sample(i[1:], k=2) + [i[0]] for i in questions]
 
                 for question in questions:
                     random.shuffle(question)
@@ -302,10 +328,11 @@ def requestchallenge():
                 for idx, i in enumerate(images):
                     if i in correct_answers:
                         answer.append(idx)
+                        
+                answer = ','.join([str(i) for i in answer]) # stringify into js-like format
 
-                challenge = challenge.replace('{{IMAGES}}', json.dumps(images))
+                challenge = challenge.replace('{{IMAGES}}', json.dumps(images)).replace('{{IMAGE_DIR}}', json.dumps(challenge_7_info['directory']))
 
-                print(answer)
 
         elif challenge_level >= 8:  # assume they will do NN-ML at this point
             pass

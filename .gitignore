@@ -135,6 +135,6 @@ old/
 trash.py
 redis-stable/
 *.mp4
-challenges/7_animals/utils/yolov4-mish-416.weights
-challenges/7_animals/utils/yolov4-mish-416.cfg
+challenges/7/images/
 trash/
+logs/
