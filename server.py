@@ -525,10 +525,13 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
         pickle.dump(image_debug_trace, f)
 
     # and move entire folder to challenge dir for serving
-    shutil.move(completed_image_folder, os.path.join('challenges', '7', 'images', served_dir_name))
+    destination_folder = os.path.join('challenges', '7', 'images', served_dir_name)
+    shutil.move(completed_image_folder, destination_folder)
 
     # clean up directories
     shutil.rmtree(base_folder)
+    
+    logging.info(f'Completed generation of challenge 7 images at: {destination_folder}')
 
 
 def update_ip_lists(force=False):
@@ -627,7 +630,10 @@ if __name__ == "__main__":
         challenge_7_generated_image_folders = sorted(os.listdir(os.path.join('challenges', '7', 'images')))
         if len(challenge_7_generated_image_folders) == 0 or \
                 int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
+                    
+            logging.info('Generating challenge 7 images...')
             gen_challenge_7_images()
+            logging.info('Generated challenge 7 images...')
 
     print('Running...')
 

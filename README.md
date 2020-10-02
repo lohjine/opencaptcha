@@ -103,7 +103,12 @@ sudo apt install ffmpeg
 # Ensure that ffmpeg is added to PATH
 
 # Place suitable animal/background audio files in challenges/7/audio
-# A small set of audio files obtained from Zapsplat and Soundbible are provided.
+# A small set of video files obtained from Pexels are provided
+# A small set of audio files obtained from Zapsplat and  are provided.
+
+# Pre-process challenge 7 videos/audio
+python scripts/preprocess_challenge_7.py
+python scripts/preprocess_audio_challenge_7.py
 
 # Place videos in challenges/7/videos
 # Allow server.py to be executed and wait for it to generate challenge 7 images, before running flask_core.py

@@ -48,6 +48,8 @@ def gen_toml_file(directory=os.path.join('challenges', '7', 'videos'), full_refr
         full_refresh (bool): If False, skips videos which already have a toml file
         ffprobe_path (str): path of ffprobe executable, blank string if already in path
 
+    Outputs:
+        Creates a toml file for each video file with the same base name as the video file
     """
 
     all_files = glob(os.path.join(directory, '*'))
@@ -88,16 +90,21 @@ def gen_toml_file(directory=os.path.join('challenges', '7', 'videos'), full_refr
             videofps = None
             resolution = None
 
-            for i in output:
-                if 'Duration: ' in i:
-                    duration = i.split(',')[0].split(' ')[-1]
-                    hour, minute, second = duration.split('.')[0].split(':')
-                    duration = int(hour) * 60 * 60 + int(minute) * 60 + int(second) + int(duration.split('.')[-1]) / 100
-
-                if 'Stream' in i and 'Video' in i:
-                    videofps = float(i.split(' fps,')[0].split(', ')[-1])
-                    resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split('x')]
-
+            try:
+                for i in output:
+                    if 'Duration: ' in i:
+                        duration = i.split(',')[0].split(' ')[-1]
+                        hour, minute, second = duration.split('.')[0].split(':')
+                        duration = int(hour) * 60 * 60 + int(minute) * 60 + int(second) + int(duration.split('.')[-1]) / 100
+    
+                    if 'Stream' in i and 'Video' in i:
+                        videofps = float(i.split(' fps,')[0].split(', ')[-1])
+                        # assume that resolution is the field before bitrate, which is described by kb/s
+                        resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split(' ')[0].split('x')]
+            except ValueError:
+                logging.error('Fail in parsing ffprobe output, original output: ' + str(output))                
+                raise            
+            
             # format output into toml file
             video_details = {'filename': os.path.split(video)[-1],
                              'duration': duration,  # seconds
