@@ -178,27 +178,37 @@ def match_target_amplitude(sound, target_dBFS):
     return sound.apply_gain(change_in_dBFS)
 
 
-def normalize_audio_in_directory(directory, recursive=True, target_db=-24):
+def normalize_audio_in_directory(directory, target_db=-24):
     """
     Normalizes all audio files in directory to target dB in-place.
 
     """
     audio_extensions = set(['mp3', 'wav', 'aac', 'ogg'])
 
-    files = glob(directory, recursive=recursive)
+    animals = glob(directory + os.path.sep + '*')
 
-    for file in files:
-        if os.path.isfile(file):
+    count = 0
+    skip = 0
 
-            extension = os.path.split(file)[-1].split('.')[-1].lower()
+    for animal in animals:
+        files = glob(animal + os.path.sep + '*')
+        for file in files:
+            if os.path.isfile(file):
+    
+                extension = os.path.split(file)[-1].split('.')[-1].lower()
+    
+                if extension in audio_extensions:
+    
+                    sound = AudioSegment.from_file(file)
+    
+                    if abs(sound.dBFS - target_db) > 1:  # only apply operation if significantly different from target_db
+                        normalized_sound = match_target_amplitude(sound, target_db)
+                        normalized_sound.export(file, format=extension)
+                        count += 1
+                    else:
+                        skip += 1
 
-            if extension in audio_extensions:
-
-                sound = AudioSegment.from_file(file)
-
-                if abs(sound.dBFS - target_db) > 0.2:  # only apply operation if significantly different from target_db
-                    normalized_sound = match_target_amplitude(sound, target_db)
-                    normalized_sound.export(file, format=extension)
+    logging.info(f'{count} files modified, {skip} files unmodified.')
 
 
 def validate_settings_ini():
