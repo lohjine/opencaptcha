@@ -155,9 +155,6 @@ def requestchallenge():
         challenge_level = int(config['captcha']['max_challenge_level'])
 
     min_time = time.time() + 1
-    challenge_level = 7
-
-    print(challenge_level)
 
     try:
         if challenge_level <= 1:
