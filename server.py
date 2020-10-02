@@ -29,8 +29,6 @@ import pickle
 # - easy to move to new server
 # - faster?
 
-# consider wiki block list?
-
 
 opener = urllib.request.build_opener()
 opener.addheaders = [('User-agent', 'Wget/1.12 (linux-gnu)')]  # otherwise firehol blocks us
@@ -320,6 +318,18 @@ def transform_ipnet_strings(ipnets, transformed_ipnets=set()):
 
 
 def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'), ffmpeg_path=''):
+    """
+    Generates challenge 7 images from videos
+
+
+    Args:
+        video_folder (str): Filepath where source videos are located
+        ffmpeg_path (str): Path for ffmpeg, leave blank if already on path.
+
+    Outputs:
+        Creates a directory named with current unix time, located in opencaptcha/challenges/7/images,
+        containing images derived from source videos.
+    """
 
     base_folder = os.path.join('tmp', 'challenge_7_image_gen')
     raw_image_folder = os.path.join(base_folder, 'raw')
@@ -344,9 +354,7 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
     image_debug_trace = defaultdict(list)
 
-    # probably want to multiprocess this..
-    # but we do single process for now
-    # == for each video
+    # consider multiprocess this in future
 
     toml_files = glob(os.path.join(video_folder, '*.toml'))
 
@@ -415,9 +423,9 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
             # do the image modifications
             # crop a random amount
-            # pad a random border (with a light pattern) | k nvm, crop should be good enough, and borders can be detected..
+            # pad a random border (with a light pattern) | NVM, crop should be good enough, and borders can be detected..
             # change lighting level
-            # add a light tint
+            # add a tint?
 
             # crop
             if resolution[0] > resolution[1]:
@@ -505,11 +513,6 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
             image_debug_trace[video_details['filename']].extend(filenames)
 
-    # move files to completed folder
-    # for filepath in glob(os.path.join(raw_image_folder,'*.jpg')):
-    #    path, file = os.path.split(filepath)
-    #    shutil.move(filepath, os.path.join(completed_image_folder, file))
-
     # finally
     # dump image_grouping
     with open(os.path.join(completed_image_folder, 'image_grouping.pkl'), 'wb') as f:
@@ -544,13 +547,6 @@ def clean_up_audio_challenges():
         if current_time - os.lstat(i).st_mtime > 5 * 60:
             os.remove(i)
 
-    return True
-
-
-def generate_animal_images():
-    # create a new tmp folder, populate it, then move to the correct folder, then delete if == 3 folders
-
-    # https://github.com/desirepath41/visualCaptcha/issues/24
     return True
 
 

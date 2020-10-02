@@ -230,7 +230,7 @@ def requestchallenge():
 
                 challenge = challenge.replace('{{IMG}}', img_str)
 
-        elif challenge_level >= 7:  # assume they will ocr/transcribe at this point
+        elif challenge_level >= 7:
 
             if blind:
                 challenge = challenge7_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -277,7 +277,7 @@ def requestchallenge():
                 for idx, answer in enumerate(answers_files):
                     final = final.overlay(answer, position=timings[idx] * 1000)
 
-                filename = '7' + str(time.time())
+                filename = '7' + str(time.time()) # append extra character so won't collide with audio from other challenges
                 final.export(os.path.join('challenges', 'audio', f"{filename}.mp3"), format="mp3")
                 answer = ' '.join([os.path.split(i)[-1] for i in answers])
 
@@ -420,11 +420,11 @@ def verify():
     if float(token_details['expires']) < time.time():
         return jsonify({'success': False, 'error': 'Response token expired'})
 
-# we delete tokens immediately once they are used
+# We currently delete tokens immediately once they are used
 #    if token_details['used'] == True:
 #        return jsonify({'success': False, 'error': 'Response token has already been used'})
 
-# we do not check IP because of dynamic IP
+# We do not check IP because of dynamic IP
 #    if ip is not None:
 #        if ip != token_details['ip']:
 #            return jsonify({'success':False,'error':'IP does not match'})
