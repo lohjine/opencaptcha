@@ -623,7 +623,7 @@ if __name__ == "__main__":
     schedule.every().hour.at(":00").do(update_ip_lists)
     schedule.every(10).minutes.do(clean_up_audio_challenges)
 
-    if config['captcha']['max_challenge_level'] >= 7:
+    if int(config['captcha']['max_challenge_level']) >= 7:
         schedule.every(int(config['captcha']['challenge_level_7_imagegen_interval'])).hour.do(gen_challenge_7_images)
 
         # checks if latest generated image folder is still valid, else generate
