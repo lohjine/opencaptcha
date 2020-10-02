@@ -50,15 +50,13 @@ with open(os.path.join(dirname, 'challenges', 'animalchallenge_audio.js'), 'r') 
     challenge7_audio = f.read()
 
 
-
-
 def update_challenge_7_images(first_run=False, challenge_7_directory=None, challenge_7_files=None):
     """
     Prepares for serving challenge_7_images. Checks for updates to challenge_7_images and replaces current files with the newer ones.
     """
 
     # check whether new directory
-    images = os.listdir(os.path.join(dirname, 'challenges','7','images'))
+    images = os.listdir(os.path.join(dirname, 'challenges', '7', 'images'))
 
     if len(images) == 0:
         raise ValueError('No available images for challenge 7, either set max_challenge_level = 6 in settings.ini, or run server.py to generate challenge 7 images.')
@@ -67,7 +65,7 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
     images.sort()
 
     if first_run:
-        with open(os.path.join(dirname, 'challenges','7','images',images[-1],'image_grouping.pkl'),'rb') as f:
+        with open(os.path.join(dirname, 'challenges', '7', 'images', images[-1], 'image_grouping.pkl'), 'rb') as f:
             challenge_7_files = pickle.load(f)
 
         challenge_7_directory = images[-1]
@@ -75,7 +73,7 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
     else:
         # Update if a newer challenge_7_directory is found
         if images[-1] > challenge_7_directory:
-            with open(os.path.join(dirname, 'challenges','7','images',images[-1],'image_grouping.pkl'),'rb') as f:
+            with open(os.path.join(dirname, 'challenges', '7', 'images', images[-1], 'image_grouping.pkl'), 'rb') as f:
                 challenge_7_files = pickle.load(f)
 
             challenge_7_directory = images[-1]
@@ -84,10 +82,12 @@ def update_challenge_7_images(first_run=False, challenge_7_directory=None, chall
         else:
             return None, None
 
+
 if int(config['captcha']['max_challenge_level']) >= 7:
     challenge_7_directory, challenge_7_files = update_challenge_7_images(first_run=True)
 
     challenge_7_info = {'directory': challenge_7_directory, 'files': challenge_7_files}
+
 
 @app.route('/<path:text>')
 def opencaptcha(text):
@@ -115,15 +115,14 @@ def image_challenge(text):
     # app.root_path is the same as dirname, except that app.root_path is absolute path
     # both points to opencaptcha_website/app/opencaptcha
     # absolute path fixes the weird behaviour of send_from_directory
-    
+
     directory = request.args.get('directory')
-    
+
     if not directory.isdigit():
         # only allow numeric directories to prevent security violation by accepting ".." as input
         return abort(400)
-    
-    return send_from_directory(os.path.join(app.root_path, 'challenges', '7', 'images',directory), text)
 
+    return send_from_directory(os.path.join(app.root_path, 'challenges', '7', 'images', directory), text)
 
 
 @app.route('/request', methods=['POST'])
@@ -155,7 +154,8 @@ def requestchallenge():
     if challenge_level > int(config['captcha']['max_challenge_level']):
         challenge_level = int(config['captcha']['max_challenge_level'])
 
-    min_time = time.time() + 1;challenge_level=7
+    min_time = time.time() + 1
+    challenge_level = 7
 
     print(challenge_level)
 
@@ -207,7 +207,7 @@ def requestchallenge():
                 diskpath = os.path.join(dirname, 'challenges', 'audio', filename)
                 webpath = 'challenges/audio/' + filename
 
-                engine = pyttsx3.init() # not possible to hold this object for multiple threads in prod
+                engine = pyttsx3.init()  # not possible to hold this object for multiple threads in prod
                 engine.setProperty('rate', 110)
                 engine.save_to_file(f'What is {a} plus {b}', diskpath)
                 engine.runAndWait()
@@ -234,20 +234,18 @@ def requestchallenge():
 
             if blind:
                 challenge = challenge7_audio.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
-                
-                # choose a random background audio file
-                background = random.choice(glob(os.path.join('challenges','7','audio','background','*')))
-                background = AudioSegment.from_file(background)
 
+                # choose a random background audio file
+                background = random.choice(glob(os.path.join('challenges', '7', 'audio', 'background', '*')))
+                background = AudioSegment.from_file(background)
 
                 # choose a random offset out of 15 seconds
                 duration = background.duration_seconds
-                offset = random.random() * (duration-15)
+                offset = random.random() * (duration - 15)
 
-                background_cut = background[offset*1000:(offset+15)*1000]
+                background_cut = background[offset * 1000:(offset + 15) * 1000]
 
-
-                ## choose random overlay timings
+                # choose random overlay timings
 
                 # first timing is between 1 and 2 seconds
                 timings = [random.random() + 1]
@@ -263,7 +261,7 @@ def requestchallenge():
                         timings[-2] -= 0.5
 
                 # choose random categories for the answers
-                categories = glob(os.path.join('challenges','7','audio','animals','*'))
+                categories = glob(os.path.join('challenges', '7', 'audio', 'animals', '*'))
 
                 answers = []
                 for i in range(5):
@@ -272,21 +270,20 @@ def requestchallenge():
                 # choose random files from the categories
                 answers_files = []
                 for answer in answers:
-                    answers_files.append(AudioSegment.from_file(random.choice(glob(os.path.join(answer,'*')))))
+                    answers_files.append(AudioSegment.from_file(random.choice(glob(os.path.join(answer, '*')))))
 
                 # overlay the sounds
                 final = background_cut
                 for idx, answer in enumerate(answers_files):
-                    final = final.overlay(answer, position=timings[idx]*1000)
+                    final = final.overlay(answer, position=timings[idx] * 1000)
 
                 filename = '7' + str(time.time())
-                final.export(os.path.join('challenges','audio',f"{filename}.mp3"), format="mp3")
+                final.export(os.path.join('challenges', 'audio', f"{filename}.mp3"), format="mp3")
                 answer = ' '.join([os.path.split(i)[-1] for i in answers])
-                
+
                 webpath = 'challenges/audio/' + filename + '.mp3'
-                
+
                 challenge = challenge.replace('{{AUDIO}}', webpath)
-                
 
             else:
                 challenge = challenge7.replace('{{CHALLENGE_ID}}', challenge_id).replace('{{SITE_URL}}', site_url)
@@ -328,11 +325,10 @@ def requestchallenge():
                 for idx, i in enumerate(images):
                     if i in correct_answers:
                         answer.append(idx)
-                        
-                answer = ','.join([str(i) for i in answer]) # stringify into js-like format
+
+                answer = ','.join([str(i) for i in answer])  # stringify into js-like format
 
                 challenge = challenge.replace('{{IMAGES}}', json.dumps(images)).replace('{{IMAGE_DIR}}', json.dumps(challenge_7_info['directory']))
-
 
         elif challenge_level >= 8:  # assume they will do NN-ML at this point
             pass
@@ -342,11 +338,11 @@ def requestchallenge():
             pass
         # record challenge to db
         db_connection.set_dict(challenge_id, {'site_secret': site_secret,
-                                         'expires': int(time.time()) + 5 * 60,
-                                         'ip': request.remote_addr,
-                                         'answer': answer,
-                                         'min_time': min_time},
-                          expire=300)
+                                              'expires': int(time.time()) + 5 * 60,
+                                              'ip': request.remote_addr,
+                                              'answer': answer,
+                                              'min_time': min_time},
+                               expire=300)
         return challenge
     except Exception as e:
         logging.error(f"Challenge generation failed: {e}")
@@ -391,9 +387,9 @@ def solvechallenge():
 
         db_connection.delete(challenge_id)
         db_connection.set_dict(token, {'site_secret': site_secret,
-                                  'expires': int(time.time()) + 60 * 2,
-                                  'ip': request.remote_addr},
-                          expire=120)
+                                       'expires': int(time.time()) + 60 * 2,
+                                       'ip': request.remote_addr},
+                               expire=120)
 
         return jsonify({'success': True, 'token': token})
     except BaseException as e:

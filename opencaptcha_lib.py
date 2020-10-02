@@ -27,19 +27,19 @@ def image_similarity_hash(im):
         list: hash consisting of list of booleans
     """
 
-    im = im.resize((10,10) ,resample=0) # 10x10 to be more stricter in determine similarity, as measured during testing
+    im = im.resize((10, 10), resample=0)  # 10x10 to be more stricter in determine similarity, as measured during testing
     im = im.convert(mode='L')
 
     data = list(im.getdata())
 
     avg = sum(data) / len(data)
 
-    image_hash = [i>=avg for i in data]
+    image_hash = [i >= avg for i in data]
 
     return image_hash
 
 
-def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refresh=False, ffprobe_path = ''):
+def gen_toml_file(directory=os.path.join('challenges', '7', 'videos'), full_refresh=False, ffprobe_path=''):
     """
     Generates toml files for video files for challenge 7
 
@@ -50,7 +50,7 @@ def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refres
 
     """
 
-    all_files = glob(os.path.join(directory,'*'))
+    all_files = glob(os.path.join(directory, '*'))
 
     toml_files = set([os.path.split(i)[-1][:-5] for i in all_files if i[-4:] == 'toml'])
     video_files = [i for i in all_files if i[-4:] != 'toml']
@@ -83,7 +83,6 @@ def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refres
                 files_error += 1
                 continue
 
-
             # parse output
             duration = None
             videofps = None
@@ -93,15 +92,15 @@ def gen_toml_file(directory=os.path.join('challenges','7','videos'), full_refres
                 if 'Duration: ' in i:
                     duration = i.split(',')[0].split(' ')[-1]
                     hour, minute, second = duration.split('.')[0].split(':')
-                    duration = int(hour)*60*60 + int(minute)*60 + int(second) + int(duration.split('.')[-1])/100
+                    duration = int(hour) * 60 * 60 + int(minute) * 60 + int(second) + int(duration.split('.')[-1]) / 100
 
                 if 'Stream' in i and 'Video' in i:
                     videofps = float(i.split(' fps,')[0].split(', ')[-1])
                     resolution = [int(j) for j in i.split(' kb/s')[0].split(', ')[-2].split('x')]
 
-            ## format output into toml file
+            # format output into toml file
             video_details = {'filename': os.path.split(video)[-1],
-                             'duration': duration, # seconds
+                             'duration': duration,  # seconds
                              'videofps': videofps,
                              'resolution': resolution
                              }
@@ -177,7 +176,7 @@ def normalize_audio_in_directory(directory, recursive=True, target_db=-24):
     Normalizes all audio files in directory to target dB in-place.
 
     """
-    audio_extensions = set(['mp3','wav','aac','ogg'])
+    audio_extensions = set(['mp3', 'wav', 'aac', 'ogg'])
 
     files = glob(directory, recursive=recursive)
 
@@ -190,7 +189,7 @@ def normalize_audio_in_directory(directory, recursive=True, target_db=-24):
 
                 sound = AudioSegment.from_file(file)
 
-                if abs(sound.dBFS - target_db) > 0.2: # only apply operation if significantly different from target_db
+                if abs(sound.dBFS - target_db) > 0.2:  # only apply operation if significantly different from target_db
                     normalized_sound = match_target_amplitude(sound, target_db)
                     normalized_sound.export(file, format=extension)
 
