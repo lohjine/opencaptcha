@@ -485,7 +485,7 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
             pixels = list(im2.getdata())
 
-            hue_skew = random.randint(42, 72)
+            hue_skew = random.randint(62, 82)
             im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
             im2 = im2.convert('RGB')
             filename_1 = hashlib.md5(im2.tobytes()).hexdigest()
@@ -499,7 +499,7 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
             im2.save(os.path.join(completed_image_folder, filename_2 + '.jpg'))
             filenames.append(filename_2 + '.jpg')
 
-            hue_skew = random.randint(174, 204)
+            hue_skew = random.randint(184, 214)
             im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
             im2 = im2.convert('RGB')
             filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
@@ -634,7 +634,7 @@ if __name__ == "__main__":
         if '.gitignore' in challenge_7_generated_image_folders:
             challenge_7_generated_image_folders.remove('.gitignore')
         if len(challenge_7_generated_image_folders) == 0 or \
-                int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 < time.time():
+                int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
 
             logging.info('Generating challenge 7 images...')
             gen_challenge_7_images()
