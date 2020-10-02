@@ -499,7 +499,7 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
             im2.save(os.path.join(completed_image_folder, filename_2 + '.jpg'))
             filenames.append(filename_2 + '.jpg')
 
-            hue_skew = random.randint(184, 214)
+            hue_skew = random.randint(174, 204)
             im2.putdata([((x[0] + hue_skew) % 256, x[1], x[2]) for x in pixels])
             im2 = im2.convert('RGB')
             filename_3 = hashlib.md5(im2.tobytes()).hexdigest()
