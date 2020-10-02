@@ -352,19 +352,20 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
     image_grouping = []
 
-    image_debug_trace = defaultdict(list)
+    image_debug_trace = {}
 
     # consider multiprocess this in future
 
     toml_files = glob(os.path.join(video_folder, '*.toml'))
 
-    frame_details = []
-
     for toml_file in toml_files:
+
+        frame_details = defaultdict(list)
 
         with open(toml_file, 'r') as f:
             video_details = toml.load(f)
 
+        logging.debug(f"file: {video_details['filename']}")
         # validate video_annotation file
 
         # calculate the frames
@@ -385,7 +386,8 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
         while offset < total_frames:
             offset += random.randint(lowerbound_offset, upperbound_offset)
             frame_to_process.append(offset)
-            frame_details.append({'framenumber': offset})
+
+        logging.debug(f"frame numbers: {frame_to_process}")
 
         # dump images using ffmpeg to a tmp folder
         cmd_frames = ''
@@ -504,14 +506,15 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
             im2.save(os.path.join(completed_image_folder, filename_3 + '.jpg'))
             filenames.append(filename_3 + '.jpg')
 
-            # log hash -> details
-            logging.debug(f"{video_details['filename']} , {frame_details[idx]['framenumber']}")
-
             previous_frame_hash = current_frame_hash
 
             image_grouping.append(filenames)
 
-            image_debug_trace[video_details['filename']].extend(filenames)
+            frame_details[frame_to_process[idx]].extend(filenames)
+
+            os.remove(jpeg_file)
+
+        image_debug_trace[video_details['filename']] = frame_details
 
     # finally
     # dump image_grouping
@@ -530,7 +533,7 @@ def gen_challenge_7_images(video_folder=os.path.join('challenges', '7', 'videos'
 
     # clean up directories
     shutil.rmtree(base_folder)
-    
+
     logging.info(f'Completed generation of challenge 7 images at: {destination_folder}')
 
 
@@ -632,7 +635,7 @@ if __name__ == "__main__":
             challenge_7_generated_image_folders.remove('.gitignore')
         if len(challenge_7_generated_image_folders) == 0 or \
                 int(challenge_7_generated_image_folders[-1]) + int(config['captcha']['challenge_level_7_imagegen_interval']) * 60 * 60 > time.time():
-                    
+
             logging.info('Generating challenge 7 images...')
             gen_challenge_7_images()
             logging.info('Generated challenge 7 images...')
