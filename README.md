@@ -1,6 +1,6 @@
 # OpenCaptcha
 
-OpenCaptcha is an open source, user-friendly, privacy-focused captcha. Currently in pre-alpha, actively developed.
+OpenCaptcha is an open source, user-friendly, privacy-focused captcha. Currently in pre-alpha.
 
 ## Guiding Principles
 
